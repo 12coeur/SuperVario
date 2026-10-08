@@ -3,336 +3,192 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vario12Coeur</title>
+  <title>Super Vario</title>
+
+  <!-- PWA & Mobile settings -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+
+  <!-- Style CSS basique & Responsive -->
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      padding: 10px;
-      overflow: hidden;
+      margin: 0;
+      padding: 15px;
+      background-color: #121212;
+      color: #ffffff;
+      text-align: center;
     }
 
     header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
+      margin-bottom: 15px;
     }
-    h1 {
-      font-size: 1.2em;
-      color: #0f172a;
-    }
-    #status {
-      padding: 4px 10px;
-      border-radius: 4px;
+
+    .btn-start {
+      background-color: #00e676;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
       font-weight: bold;
-      font-size: 0.75em;
-    }
-    .status.info { background-color: #e2e8f0; color: #334155; }
-    .status.success { background-color: #dcfce7; color: #166534; }
-    .status.error { background-color: #fee2e2; color: #991b1b; }
-
-    .dashboard {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      flex: 1;
-      min-height: 0;
+      border-radius: 25px;
+      cursor: pointer;
+      margin-bottom: 15px;
     }
 
-    @media (orientation: landscape) {
-      .dashboard {
-        grid-template-columns: 1fr 1fr;
-      }
+    .btn-start:active {
+      background-color: #00b359;
+    }
+
+    .sensor-data {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
     }
 
     .data-card {
-      background: white;
+      background: #1e1e1e;
       padding: 10px;
       border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
+      min-width: 30%;
     }
 
-    .data-title {
-      font-size: 1.1em;
+    .data-value {
+      font-size: 20px;
       font-weight: bold;
-      margin-bottom: 5px;
-      text-align: center;
-    }
-    .pressure-color { color: #2563eb; }
-    .accel-color { color: #059669; }
-
-    /* Disposition horizontale : Slider à gauche + Graphique à droite */
-    .card-body {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      flex: 1;
-      min-height: 0;
-      gap: 5px;
+      color: #00e676;
     }
 
-    /* Style du curseur vertical */
-    .calibration-control {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      width: 28px;
-    }
-
-    .calibration-label {
-      font-size: 0.65em;
-      color: #64748b;
-      margin-top: 2px;
-      font-weight: bold;
-      text-align: center;
-    }
-
-    .vertical-slider {
-      writing-mode: bt-lr; /* IE/Edge */
-      -webkit-appearance: slider-vertical; /* WebKit/Chrome */
-      width: 16px;
-      height: 100%;
-      cursor: pointer;
-    }
-
-    .graph-container {
-      flex: 1;
+    .chart-container {
       position: relative;
       width: 100%;
-      height: 100%;
-      min-height: 0;
-    }
-
-    canvas {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 100% !important;
-      height: 100% !important;
+      max-width: 600px;
+      margin: 0 auto;
     }
   </style>
+
+  <!-- Inclusion de Chart.js local -->
+  <script src="chart.min.js"></script>
 </head>
 <body>
 
-<header>
-  <h1>Vario12Coeur</h1>
-  <div id="status" class="status info">Initialisation...</div>
-</header>
+  <header>
+    <h1>SuperVario</h1>
+  </header>
 
-<div class="dashboard">
-  <!-- Carte Pression -->
-  <div class="data-card">
-    <div id="pressureDisplay" class="data-title pressure-color">Pression</div>
-    <div class="card-body">
-      <!-- Curseur Calibrage Pression à gauche -->
-      <div class="calibration-control">
-        <input type="range" id="calibPressure" class="vertical-slider" min="0.1" max="10" step="0.1" value="1.0" title="Calibrage Pression">
-        <span class="calibration-label" id="labelCalibPressure">x1.0</span>
-      </div>
-      <div class="graph-container">
-        <canvas id="pressureChart"></canvas>
-      </div>
-    </div>
-  </div>
+  <main>
+    <!-- Bouton indispensable pour activer les capteurs sur mobile -->
+    <button id="btnStart" class="btn-start">Démarrer le Vario</button>
 
-  <!-- Carte Acceleration Z -->
-  <div class="data-card">
-    <div id="accelDisplay" class="data-title accel-color">Acceleration Z</div>
-    <div class="card-body">
-      <!-- Curseur Calibrage Accélération Z à gauche -->
-      <div class="calibration-control">
-        <input type="range" id="calibAccel" class="vertical-slider" min="0.1" max="10" step="0.1" value="1.0" title="Calibrage Accélération">
-        <span class="calibration-label" id="labelCalibAccel">x1.0</span>
+    <div class="sensor-data">
+      <div class="data-card">
+        <div>Altitude</div>
+        <div id="valAltitude" class="data-value">-- m</div>
       </div>
-      <div class="graph-container">
-        <canvas id="accelChart"></canvas>
+      <div class="data-card">
+        <div>Vitesse</div>
+        <div id="valSpeed" class="data-value">-- km/h</div>
+      </div>
+      <div class="data-card">
+        <div>Pression</div>
+        <div id="valPressure" class="data-value">-- hPa</div>
       </div>
     </div>
-  </div>
-</div>
 
-<script src="chart.min.js"></script>
-<script>
-    let pressureData = [];
-    let accelData = [];
+    <!-- Conteneur du graphique -->
+    <div class="chart-container">
+      <canvas id="varioChart"></canvas>
+    </div>
+  </main>
 
-    let pressureChart = null;
-    let accelChart = null;
-
-    function setStatus(msg, type = 'info') {
-      const statusEl = document.getElementById('status');
-      statusEl.textContent = msg;
-      statusEl.className = `status ${type}`;
-    }
-
-    function initCharts() {
-      try {
-        const optionsCommunes = {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          scales: {
-            x: { ticks: { display: false } },
-            y: { beginAtZero: false }
-          }
-        };
-
-        const ctxP = document.getElementById('pressureChart').getContext('2d');
-        pressureChart = new Chart(ctxP, {
-          type: 'line',
-          data: {
-            labels: Array(20).fill(''),
-            datasets: [{
-              label: 'Pression (hPa)',
-              borderColor: 'rgb(37, 99, 235)',
-              backgroundColor: 'rgba(37, 99, 235, 0.1)',
-              data: pressureData,
-              fill: true,
-              tension: 0.2
-            }]
-          },
-          options: optionsCommunes
-        });
-
-        const ctxA = document.getElementById('accelChart').getContext('2d');
-        accelChart = new Chart(ctxA, {
-          type: 'line',
-          data: {
-            labels: Array(20).fill(''),
-            datasets: [{
-              label: 'Acceleration Z (m/s²)',
-              borderColor: 'rgb(5, 150, 105)',
-              backgroundColor: 'rgba(5, 150, 105, 0.1)',
-              data: accelData,
-              fill: true,
-              tension: 0.2
-            }]
-          },
-          options: {
-            ...optionsCommunes,
-            scales: {
-              x: { ticks: { display: false } },
-              y: { min: -5, max: 5 }
-            }
-          }
-        });
-      } catch (e) {
-        console.error("Erreur Chart.js :", e);
-      }
-    }
-
-    function updateCharts(pressure, accelZ) {
-      if (pressureData.length >= 20) pressureData.shift();
-      pressureData.push(pressure);
-      if (pressureChart) pressureChart.update();
-
-      if (accelData.length >= 20) accelData.shift();
-      accelData.push(accelZ);
-      if (accelChart) accelChart.update();
-    }
-
-    function readSensorsFromAndroid() {
-      if (window.AndroidBarometer) {
-        const pressure = window.AndroidBarometer.getPressure();
-        const accelZ = window.AndroidBarometer.getVerticalAccel ? window.AndroidBarometer.getVerticalAccel() : 0;
-
-        if (pressure > 0) {
-          document.getElementById('pressureDisplay').textContent = "Pression: " + pressure.toFixed(2) + " hPa";
-          document.getElementById('accelDisplay').textContent = "Acceleration Z: " + accelZ.toFixed(2) + " m/s²";
-          updateCharts(pressure, accelZ);
-          setStatus("Capteurs actifs", "success");
-        } else {
-          setStatus("En attente...", "info");
-        }
-      } else {
-        setStatus("Pont indisponible", "error");
-      }
-    }
-
-    function setupCalibrationListeners() {
-      const sliderP = document.getElementById('calibPressure');
-      const labelP = document.getElementById('labelCalibPressure');
-
-      sliderP.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        labelP.textContent = 'x' + val.toFixed(1);
-        if (window.AndroidBarometer && window.AndroidBarometer.setPressureCalibration) {
-          window.AndroidBarometer.setPressureCalibration(val);
-        }
-      });
-
-      const sliderA = document.getElementById('calibAccel');
-      const labelA = document.getElementById('labelCalibAccel');
-
-      sliderA.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        labelA.textContent = 'x' + val.toFixed(1);
-        if (window.AndroidBarometer && window.AndroidBarometer.setAccelCalibration) {
-          window.AndroidBarometer.setAccelCalibration(val);
-        }
-      });
-    }
-// 1. Déclaration des fonctions pour les capteurs
-function demarrerGPS() {
-  if ("geolocation" in navigator) {
-    navigator.geolocation.watchPosition(
-      (position) => {
-        const altitude = position.coords.altitude;
-        const vitesse = position.coords.speed;
-        console.log(`Altitude GPS : ${altitude} m, Vitesse : ${vitesse} m/s`);
+  <script>
+    // --- 1. Initialisation de Chart.js ---
+    const ctx = document.getElementById('varioChart').getContext('2d');
+    const varioChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'Altitude (m)',
+          data: [],
+          borderColor: '#00e676',
+          borderWidth: 2,
+          fill: false
+        }]
       },
-      (erreur) => {
-        console.error("Erreur GPS :", erreur.message);
-      },
-      { enableHighAccuracy: true, maximumAge: 0 }
-    );
-  }
-}
-
-function demarrerBarometre() {
-  // Tentative de lecture des capteurs
-  if ('PressureObserver' in window) {
-    try {
-      const observer = new PressureObserver((records) => {
-        const record = records[records.length - 1];
-        console.log("Pression :", record.pressure);
-      });
-      observer.observe('cpu');
-    } catch (e) {
-      console.error("Erreur baromètre :", e);
-    }
-  }
-}
-
-// 2. Écouteur sur le bouton pour valider les permissions lors du clic
-document.getElementById('btnStart').addEventListener('click', () => {
-  demarrerGPS();
-  demarrerBarometre();
-});
-
-// 3. Ton code existant (ex: chargement de la page, événements de fenêtres, etc.)
-window.addEventListener('load', () => {
-  // Initialisation du graphique Chart.js, etc.
-});
-    window.addEventListener('DOMContentLoaded', () => {
-      initCharts();
-      setupCalibrationListeners();
-      setInterval(readSensorsFromAndroid, 200);
+      options: {
+        responsive: true,
+        scales: {
+          x: { display: false },
+          y: {
+            grid: { color: '#333' },
+            ticks: { color: '#fff' }
+          }
+        }
+      }
     });
-</script>
+
+    // --- 2. Fonction GPS ---
+    function demarrerGPS() {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            const alt = position.coords.altitude !== null ? Math.round(position.coords.altitude) : '--';
+            const speed = position.coords.speed !== null ? (position.coords.speed * 3.6).toFixed(1) : '--';
+
+            document.getElementById('valAltitude').textContent = alt + ' m';
+            document.getElementById('valSpeed').textContent = speed + ' km/h';
+
+            // Mise à jour du graphique
+            if (alt !== '--') {
+              const now = new Date().toLocaleTimeString();
+              varioChart.data.labels.push(now);
+              varioChart.data.datasets[0].data.push(alt);
+
+              // Conserver uniquement les 20 dernières mesures
+              if (varioChart.data.labels.length > 20) {
+                varioChart.data.labels.shift();
+                varioChart.data.datasets[0].data.shift();
+              }
+              varioChart.update();
+            }
+          },
+          (err) => console.error("Erreur GPS :", err.message),
+          { enableHighAccuracy: true, maximumAge: 0 }
+        );
+      }
+    }
+
+    // --- 3. Fonction Baromètre ---
+    function demarrerBarometre() {
+      if ('PressureObserver' in window) {
+        try {
+          const observer = new PressureObserver((records) => {
+            const record = records[records.length - 1];
+            document.getElementById('valPressure').textContent = Math.round(record.pressure) + ' hPa';
+          });
+          observer.observe('cpu');
+        } catch (e) {
+          console.error("Erreur Baromètre :", e);
+        }
+      }
+    }
+
+    // --- 4. Écouteur sur le bouton Démarrer ---
+    document.getElementById('btnStart').addEventListener('click', () => {
+      demarrerGPS();
+      demarrerBarometre();
+      document.getElementById('btnStart').style.display = 'none'; // Masquer le bouton une fois lancé
+    });
+
+    // --- 5. Enregistrement du Service Worker PWA ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker enregistré !', reg.scope))
+          .catch(err => console.error('Erreur Service Worker :', err));
+      });
+    }
+  </script>
 </body>
 </html>
