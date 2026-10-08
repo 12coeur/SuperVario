@@ -4,190 +4,373 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Super Vario</title>
-
-  <!-- PWA & Mobile settings -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#000000">
 
-  <!-- Style CSS basique & Responsive -->
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 15px;
+      padding: 10px;
       background-color: #121212;
       color: #ffffff;
       text-align: center;
+      transition: opacity 0.2s ease;
     }
 
     header {
-      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 5px 10px 5px;
+    }
+
+    .hamburger-btn {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-size: 24px;
+      cursor: pointer;
     }
 
     .btn-start {
       background-color: #00e676;
       color: #000;
       border: none;
-      padding: 12px 24px;
-      font-size: 16px;
+      padding: 10px 20px;
+      font-size: 15px;
       font-weight: bold;
-      border-radius: 25px;
+      border-radius: 20px;
       cursor: pointer;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    .btn-start:active {
-      background-color: #00b359;
-    }
-
-    .sensor-data {
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 20px;
-    }
-
-    .data-card {
+    /* Rendu Visuel avec Images */
+    .visual-display {
       background: #1e1e1e;
-      padding: 10px;
+      padding: 8px;
       border-radius: 8px;
-      min-width: 30%;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
     }
 
-    .data-value {
+    .vario-image {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
+    }
+
+    .mix-value {
       font-size: 20px;
       font-weight: bold;
       color: #00e676;
     }
 
-    .chart-container {
+    /* Panneau de réglages généraux */
+    .global-settings {
+      background: #1e1e1e;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Panneau de contrôle des graphiques */
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    @media (orientation: landscape) {
+      .control-panel {
+        flex-direction: row;
+      }
+      .sensor-block {
+        flex: 1;
+      }
+    }
+
+    .sensor-block {
+      background: #1e1e1e;
+      padding: 10px;
+      border-radius: 8px;
+      border-top: 3px solid #555;
+    }
+
+    .block-pressure { border-top-color: #00e676; }
+    .block-accel { border-top-color: #ff9800; }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    .slider-container input[type="range"] {
+      width: 45%;
+      accent-color: #00e676;
+    }
+
+    .block-accel .slider-container input[type="range"] {
+      accent-color: #ff9800;
+    }
+
+    .global-settings input[type="range"] {
+      accent-color: #2196f3;
+    }
+
+    .chart-container-small {
       position: relative;
       width: 100%;
-      max-width: 600px;
-      margin: 0 auto;
+      height: 110px;
     }
   </style>
 
-  <!-- Inclusion de Chart.js local -->
   <script src="chart.min.js"></script>
 </head>
-<body>
+<body id="appBody">
 
   <header>
-    <h1>SuperVario</h1>
+    <h2 style="margin: 0;">SuperVario</h2>
+    <button class="hamburger-btn" id="btnHamburger">☰</button>
   </header>
 
   <main>
-    <!-- Bouton indispensable pour activer les capteurs sur mobile -->
     <button id="btnStart" class="btn-start">Démarrer le Vario</button>
 
-    <div class="sensor-data">
-      <div class="data-card">
-        <div>Altitude</div>
-        <div id="valAltitude" class="data-value">-- m</div>
-      </div>
-      <div class="data-card">
-        <div>Vitesse</div>
-        <div id="valSpeed" class="data-value">-- km/h</div>
-      </div>
-      <div class="data-card">
-        <div>Pression</div>
-        <div id="valPressure" class="data-value">-- hPa</div>
-      </div>
+    <!-- Zone Rendu Visuel -->
+    <div class="visual-display">
+      <img id="varioStateImg" src="Images/vario_neutral.png" alt="État Vario" class="vario-image">
+      <div id="valMix" class="mix-value">Mix : 0.00</div>
     </div>
 
-    <!-- Conteneur du graphique -->
-    <div class="chart-container">
-      <canvas id="varioChart"></canvas>
+    <!-- Conteneur masquable via le bouton Hamburger -->
+    <div id="panelContent">
+      
+      <!-- Réglages Généraux -->
+      <div class="global-settings">
+        <div class="slider-container">
+          <label for="gainCadence">Cadence :</label>
+          <input type="range" id="gainCadence" min="50" max="500" step="10" value="100">
+          <span id="txtCadence">100 ms</span>
+        </div>
+
+        <div class="slider-container">
+          <label for="gainPartage">Partage (Press/Accel) :</label>
+          <input type="range" id="gainPartage" min="0" max="100" step="1" value="50">
+          <span id="txtPartage">50/50</span>
+        </div>
+
+        <div class="slider-container">
+          <label for="gainVolume">Volume Son :</label>
+          <input type="range" id="gainVolume" min="0" max="100" step="1" value="80">
+          <span id="txtVolume">80%</span>
+        </div>
+
+        <div class="slider-container">
+          <label for="gainAlpha">Alpha (Masquage) :</label>
+          <input type="range" id="gainAlpha" min="0.1" max="1.0" step="0.05" value="1.0">
+          <span id="txtAlpha">100%</span>
+        </div>
+      </div>
+
+      <!-- Graphiques et Curseurs Dédiés -->
+      <div class="control-panel">
+        
+        <!-- Pression / Baromètre (Vert) -->
+        <div class="sensor-block block-pressure">
+          <div class="slider-container">
+            <label for="gainPressure" style="color: #00e676; font-weight: bold;">Pression :</label>
+            <input type="range" id="gainPressure" min="0.1" max="2.0" step="0.1" value="1.0">
+            <span id="txtGainPressure">1.0x</span>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="pressureChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Accéléromètre Z (Orange) -->
+        <div class="sensor-block block-accel">
+          <div class="slider-container">
+            <label for="gainAccel" style="color: #ff9800; font-weight: bold;">Accélération :</label>
+            <input type="range" id="gainAccel" min="0.1" max="2.0" step="0.1" value="1.0">
+            <span id="txtGainAccel">1.0x</span>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="accelChart"></canvas>
+          </div>
+        </div>
+
+      </div>
     </div>
   </main>
 
   <script>
-    // --- 1. Initialisation de Chart.js ---
-    const ctx = document.getElementById('varioChart').getContext('2d');
-    const varioChart = new Chart(ctx, {
+    let rawPressure = 1013.25;
+    let rawAccelZ = 0;
+    
+    let avgPressure = 1013.25;
+    let avgAccelZ = 0;
+    let loopInterval = null;
+
+    let hasPressureSensor = false;
+    let hasAccelSensor = false;
+
+    // Configuration Chart.js
+    const chartConfig = (label, color) => ({
       type: 'line',
       data: {
-        labels: [],
+        labels: Array(30).fill(''),
         datasets: [{
-          label: 'Altitude (m)',
-          data: [],
-          borderColor: '#00e676',
-          borderWidth: 2,
+          label: label,
+          data: Array(30).fill(0),
+          borderColor: color,
+          borderWidth: 1.5,
+          pointRadius: 0,
           fill: false
         }]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
         scales: {
           x: { display: false },
-          y: {
-            grid: { color: '#333' },
-            ticks: { color: '#fff' }
-          }
-        }
+          y: { grid: { color: '#2a2a2a' }, ticks: { color: '#aaa', font: { size: 9 } } }
+        },
+        plugins: { legend: { display: false } }
       }
     });
 
-    // --- 2. Fonction GPS ---
-    function demarrerGPS() {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.watchPosition(
-          (position) => {
-            const alt = position.coords.altitude !== null ? Math.round(position.coords.altitude) : '--';
-            const speed = position.coords.speed !== null ? (position.coords.speed * 3.6).toFixed(1) : '--';
+    const pressureChart = new Chart(document.getElementById('pressureChart').getContext('2d'), chartConfig('Pression', '#00e676'));
+    const accelChart = new Chart(document.getElementById('accelChart').getContext('2d'), chartConfig('Accélération', '#ff9800'));
 
-            document.getElementById('valAltitude').textContent = alt + ' m';
-            document.getElementById('valSpeed').textContent = speed + ' km/h';
+    function pushData(chart, value) {
+      chart.data.datasets[0].data.push(value);
+      if (chart.data.datasets[0].data.length > 30) {
+        chart.data.datasets[0].data.shift();
+      }
+      chart.update();
+    }
 
-            // Mise à jour du graphique
-            if (alt !== '--') {
-              const now = new Date().toLocaleTimeString();
-              varioChart.data.labels.push(now);
-              varioChart.data.datasets[0].data.push(alt);
+    // Références des curseurs
+    const sliderP = document.getElementById('gainPressure');
+    const sliderA = document.getElementById('gainAccel');
+    const sliderCadence = document.getElementById('gainCadence');
+    const sliderPartage = document.getElementById('gainPartage');
+    const sliderVolume = document.getElementById('gainVolume');
+    const sliderAlpha = document.getElementById('gainAlpha');
 
-              // Conserver uniquement les 20 dernières mesures
-              if (varioChart.data.labels.length > 20) {
-                varioChart.data.labels.shift();
-                varioChart.data.datasets[0].data.shift();
-              }
-              varioChart.update();
-            }
-          },
-          (err) => console.error("Erreur GPS :", err.message),
-          { enableHighAccuracy: true, maximumAge: 0 }
-        );
+    sliderP.addEventListener('input', (e) => document.getElementById('txtGainPressure').textContent = e.target.value + 'x');
+    sliderA.addEventListener('input', (e) => document.getElementById('txtGainAccel').textContent = e.target.value + 'x');
+    sliderVolume.addEventListener('input', (e) => document.getElementById('txtVolume').textContent = e.target.value + '%');
+    
+    sliderAlpha.addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.getElementById('txtAlpha').textContent = Math.round(val * 100) + '%';
+      document.getElementById('appBody').style.opacity = val;
+    });
+
+    sliderPartage.addEventListener('input', (e) => {
+      const val = e.target.value;
+      document.getElementById('txtPartage').textContent = `${val}/${100 - val}`;
+    });
+
+    sliderCadence.addEventListener('input', (e) => {
+      const ms = e.target.value;
+      document.getElementById('txtCadence').textContent = ms + ' ms';
+      if (loopInterval) {
+        clearInterval(loopInterval);
+        loopInterval = setInterval(traiterEtMixer, parseInt(ms));
+      }
+    });
+
+    // Bouton Hamburger
+    document.getElementById('btnHamburger').addEventListener('click', () => {
+      const panel = document.getElementById('panelContent');
+      panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+    });
+
+    // Algorithme de mixage et d'animation
+    function traiterEtMixer() {
+      // Simulation légère si aucun capteur matériel présent/actif
+      if (!hasPressureSensor) {
+        rawPressure += (Math.random() - 0.5) * 0.1;
+      }
+      if (!hasAccelSensor) {
+        rawAccelZ = (Math.random() - 0.5) * 0.4;
+      }
+
+      const gainP = parseFloat(sliderP.value);
+      const gainA = parseFloat(sliderA.value);
+      const ratioP = parseFloat(sliderPartage.value) / 100;
+      const ratioA = 1 - ratioP;
+
+      avgPressure = (avgPressure * 0.9) + (rawPressure * 0.1);
+      avgAccelZ = (avgAccelZ * 0.9) + (rawAccelZ * 0.1);
+
+      const diffPressure = (rawPressure - avgPressure) * gainP;
+      const diffAccel = (rawAccelZ - avgAccelZ) * gainA;
+
+      pushData(pressureChart, avgPressure + diffPressure);
+      pushData(accelChart, diffAccel);
+
+      const mixResult = (-diffPressure * 2.0 * ratioP) + (diffAccel * 1.0 * ratioA);
+      document.getElementById('valMix').textContent = `Mix : ${mixResult.toFixed(2)}`;
+
+      const imgElem = document.getElementById('varioStateImg');
+      if (mixResult > 0.3) {
+        imgElem.src = "Images/vario_up.png";
+      } else if (mixResult < -0.3) {
+        imgElem.src = "Images/vario_down.png";
+      } else {
+        imgElem.src = "Images/vario_neutral.png";
       }
     }
 
-    // --- 3. Fonction Baromètre ---
-    function demarrerBarometre() {
+    function demarrerCapteurs() {
+      // Baromètre
       if ('PressureObserver' in window) {
         try {
           const observer = new PressureObserver((records) => {
-            const record = records[records.length - 1];
-            document.getElementById('valPressure').textContent = Math.round(record.pressure) + ' hPa';
+            if (records.length > 0) {
+              rawPressure = records[records.length - 1].pressure;
+              hasPressureSensor = true;
+            }
           });
           observer.observe('cpu');
-        } catch (e) {
-          console.error("Erreur Baromètre :", e);
-        }
+        } catch (e) { console.error(e); }
       }
+
+      // Accéléromètre
+      if (window.DeviceMotionEvent) {
+        window.addEventListener('devicemotion', (event) => {
+          if (event.accelerationIncludingGravity && event.accelerationIncludingGravity.z !== null) {
+            rawAccelZ = event.accelerationIncludingGravity.z - 9.81;
+            hasAccelSensor = true;
+          }
+        });
+      }
+
+      const cadenceInitial = parseInt(sliderCadence.value);
+      loopInterval = setInterval(traiterEtMixer, cadenceInitial);
     }
 
-    // --- 4. Écouteur sur le bouton Démarrer ---
     document.getElementById('btnStart').addEventListener('click', () => {
-      demarrerGPS();
-      demarrerBarometre();
-      document.getElementById('btnStart').style.display = 'none'; // Masquer le bouton une fois lancé
+      demarrerCapteurs();
+      document.getElementById('btnStart').style.display = 'none';
     });
 
-    // --- 5. Enregistrement du Service Worker PWA ---
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('Service Worker enregistré !', reg.scope))
-          .catch(err => console.error('Erreur Service Worker :', err));
-      });
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
     }
   </script>
 </body>
