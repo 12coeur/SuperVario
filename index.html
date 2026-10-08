@@ -3,140 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Vario</title>
+  <title>Super Vario</title>  
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#000000">
-
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 10px;
-      background-color: #121212;
-      color: #ffffff;
-      text-align: center;
-      transition: opacity 0.2s ease;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 5px 10px 5px;
-    }
-
-    .hamburger-btn {
-      background: none;
-      border: none;
-      color: #ffffff;
-      font-size: 24px;
-      cursor: pointer;
-    }
-
-    .btn-start {
-      background-color: #00e676;
-      color: #000;
-      border: none;
-      padding: 10px 20px;
-      font-size: 15px;
-      font-weight: bold;
-      border-radius: 20px;
-      cursor: pointer;
-      margin-bottom: 10px;
-    }
-
-    .visual-display {
-      background: #1e1e1e;
-      padding: 8px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 15px;
-    }
-
-    .vario-image {
-      width: 60px;
-      height: 60px;
-      object-fit: contain;
-    }
-
-    .mix-value {
-      font-size: 20px;
-      font-weight: bold;
-      color: #00e676;
-    }
-
-    .global-settings {
-      background: #1e1e1e;
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .control-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    @media (orientation: landscape) {
-      .control-panel {
-        flex-direction: row;
-      }
-      .sensor-block {
-        flex: 1;
-      }
-    }
-
-    .sensor-block {
-      background: #1e1e1e;
-      padding: 10px;
-      border-radius: 8px;
-      border-top: 3px solid #555;
-    }
-
-    .block-pressure { border-top-color: #00e676; }
-    .block-accel { border-top-color: #ff9800; }
-
-    .slider-container {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 5px;
-      font-size: 13px;
-    }
-
-    .slider-container input[type="range"] {
-      width: 45%;
-      accent-color: #00e676;
-    }
-
-    .block-accel .slider-container input[type="range"] {
-      accent-color: #ff9800;
-    }
-
-    .global-settings input[type="range"] {
-      accent-color: #2196f3;
-    }
-
-    .chart-container-small {
-      position: relative;
-      width: 100%;
-      height: 110px;
-    }
-  </style>
-
-  <script src="chart.min.js"></script>
+  <link rel="stylesheet" href="style.css"><script src="chart.min.js"></script>
 </head>
 <body id="appBody">
 
   <header>
-    <h2 style="margin: 0;">SuperVario</h2>
+    <div class="header-title">
+      <img src="Images/logo12coeur.png" alt="Logo Super Vario" class="header-logo">
+      <h2>Super Vario</h2>
+	        <img src="Images/logo12coeur.png" alt="Logo Super Vario" class="header-logo">
+    </div>
     <button class="hamburger-btn" id="btnHamburger">☰</button>
   </header>
 
@@ -185,7 +64,7 @@
         <!-- Pression / Baromètre (Vert) -->
         <div class="sensor-block block-pressure">
           <div class="slider-container">
-            <label for="gainPressure" style="color: #00e676; font-weight: bold;">Pression :</label>
+            <label for="gainPressure" class="sensor-label-pressure">Pression :</label>
             <input type="range" id="gainPressure" min="0.1" max="2.0" step="0.1" value="1.0">
             <span id="txtGainPressure">1.0x</span>
           </div>
@@ -197,7 +76,7 @@
         <!-- Accéléromètre Z (Orange) -->
         <div class="sensor-block block-accel">
           <div class="slider-container">
-            <label for="gainAccel" style="color: #ff9800; font-weight: bold;">Accélération :</label>
+            <label for="gainAccel" class="sensor-label-accel">Accélération :</label>
             <input type="range" id="gainAccel" min="0.1" max="2.0" step="0.1" value="1.0">
             <span id="txtGainAccel">1.0x</span>
           </div>
