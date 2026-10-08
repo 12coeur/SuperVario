@@ -286,7 +286,48 @@
         }
       });
     }
+// 1. Déclaration des fonctions pour les capteurs
+function demarrerGPS() {
+  if ("geolocation" in navigator) {
+    navigator.geolocation.watchPosition(
+      (position) => {
+        const altitude = position.coords.altitude;
+        const vitesse = position.coords.speed;
+        console.log(`Altitude GPS : ${altitude} m, Vitesse : ${vitesse} m/s`);
+      },
+      (erreur) => {
+        console.error("Erreur GPS :", erreur.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 0 }
+    );
+  }
+}
 
+function demarrerBarometre() {
+  // Tentative de lecture des capteurs
+  if ('PressureObserver' in window) {
+    try {
+      const observer = new PressureObserver((records) => {
+        const record = records[records.length - 1];
+        console.log("Pression :", record.pressure);
+      });
+      observer.observe('cpu');
+    } catch (e) {
+      console.error("Erreur baromètre :", e);
+    }
+  }
+}
+
+// 2. Écouteur sur le bouton pour valider les permissions lors du clic
+document.getElementById('btnStart').addEventListener('click', () => {
+  demarrerGPS();
+  demarrerBarometre();
+});
+
+// 3. Ton code existant (ex: chargement de la page, événements de fenêtres, etc.)
+window.addEventListener('load', () => {
+  // Initialisation du graphique Chart.js, etc.
+});
     window.addEventListener('DOMContentLoaded', () => {
       initCharts();
       setupCalibrationListeners();
