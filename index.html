@@ -45,7 +45,6 @@
       margin-bottom: 10px;
     }
 
-    /* Rendu Visuel avec Images */
     .visual-display {
       background: #1e1e1e;
       padding: 8px;
@@ -69,7 +68,6 @@
       color: #00e676;
     }
 
-    /* Panneau de réglages généraux */
     .global-settings {
       background: #1e1e1e;
       padding: 10px;
@@ -80,7 +78,6 @@
       gap: 8px;
     }
 
-    /* Panneau de contrôle des graphiques */
     .control-panel {
       display: flex;
       flex-direction: column;
@@ -224,6 +221,73 @@
     let hasPressureSensor = false;
     let hasAccelSensor = false;
 
+    // --- Moteur Audio (Web Audio API) ---
+    let audioCtx = null;
+    let oscillator = null;
+    let gainNode = null;
+    let nextBeepTime = 0;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+
+        oscillator = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine'; // Son pur
+        oscillator.frequency.value = 440;
+        gainNode.gain.value = 0; // Silencieux au départ
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function jouerSonVario(mixValue) {
+      if (!audioCtx || !gainNode) return;
+
+      const volumeRegle = parseFloat(sliderVolume.value) / 100;
+      if (volumeRegle === 0) {
+        gainNode.gain.value = 0;
+        return;
+      }
+
+      const now = audioCtx.currentTime;
+
+      // 1. MONTEE (Mix > 0.3) : Bips hachés modulés
+      if (mixValue > 0.3) {
+        // Fréquence du ton : de 500 Hz à 1600 Hz selon la montée
+        const freq = Math.min(1600, 500 + (mixValue * 250));
+        oscillator.frequency.setValueAtTime(freq, now);
+
+        // Durée et intervalle du bip : plus on monte vite, plus le bip est court et rapide
+        const beepDuration = Math.max(0.08, 0.3 - (mixValue * 0.04));
+        const beepInterval = Math.max(0.12, 0.5 - (mixValue * 0.06));
+
+        if (now >= nextBeepTime) {
+          gainNode.gain.setValueAtTime(volumeRegle * 0.3, now);
+          gainNode.gain.setValueAtTime(0, now + beepDuration);
+          nextBeepTime = now + beepInterval;
+        }
+      } 
+      // 2. DESCENTE (Mix < -0.5) : Son grave continu
+      else if (mixValue < -0.5) {
+        // Fréquence grave : de 350 Hz en descendant à 200 Hz
+        const freq = Math.max(180, 350 + (mixValue * 80));
+        oscillator.frequency.setValueAtTime(freq, now);
+        gainNode.gain.setValueAtTime(volumeRegle * 0.25, now);
+      } 
+      // 3. ZONE NEUTRE (-0.5 <= Mix <= 0.3) : Silence
+      else {
+        gainNode.gain.setValueAtTime(0, now);
+      }
+    }
+
     // Configuration Chart.js
     const chartConfig = (label, color) => ({
       type: 'line',
@@ -299,14 +363,13 @@
       panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
     });
 
-    // Algorithme de mixage et d'animation
+    // Algorithme de mixage
     function traiterEtMixer() {
-      // Simulation légère si aucun capteur matériel présent/actif
       if (!hasPressureSensor) {
-        rawPressure += (Math.random() - 0.5) * 0.1;
+        rawPressure += (Math.random() - 0.5) * 0.12;
       }
       if (!hasAccelSensor) {
-        rawAccelZ = (Math.random() - 0.5) * 0.4;
+        rawAccelZ = (Math.random() - 0.5) * 0.5;
       }
 
       const gainP = parseFloat(sliderP.value);
@@ -334,9 +397,15 @@
       } else {
         imgElem.src = "Images/vario_neutral.png";
       }
+
+      // Émission du son vario
+      jouerSonVario(mixResult);
     }
 
     function demarrerCapteurs() {
+      // Activation obligatoire de l'AudioContext lors d'un clic utilisateur sur Chrome Mobile
+      initAudio();
+
       // Baromètre
       if ('PressureObserver' in window) {
         try {
