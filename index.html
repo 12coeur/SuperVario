@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vario12Coeur</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 1.2em;
+      color: #0f172a;
+    }
+    #status {
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.75em;
+    }
+    .status.info { background-color: #e2e8f0; color: #334155; }
+    .status.success { background-color: #dcfce7; color: #166534; }
+    .status.error { background-color: #fee2e2; color: #991b1b; }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    @media (orientation: landscape) {
+      .dashboard {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .data-card {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .data-title {
+      font-size: 1.1em;
+      font-weight: bold;
+      margin-bottom: 5px;
+      text-align: center;
+    }
+    .pressure-color { color: #2563eb; }
+    .accel-color { color: #059669; }
+
+    /* Disposition horizontale : Slider à gauche + Graphique à droite */
+    .card-body {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      flex: 1;
+      min-height: 0;
+      gap: 5px;
+    }
+
+    /* Style du curseur vertical */
+    .calibration-control {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 28px;
+    }
+
+    .calibration-label {
+      font-size: 0.65em;
+      color: #64748b;
+      margin-top: 2px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .vertical-slider {
+      writing-mode: bt-lr; /* IE/Edge */
+      -webkit-appearance: slider-vertical; /* WebKit/Chrome */
+      width: 16px;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .graph-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+    }
+
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Vario12Coeur</h1>
+  <div id="status" class="status info">Initialisation...</div>
+</header>
+
+<div class="dashboard">
+  <!-- Carte Pression -->
+  <div class="data-card">
+    <div id="pressureDisplay" class="data-title pressure-color">Pression</div>
+    <div class="card-body">
+      <!-- Curseur Calibrage Pression à gauche -->
+      <div class="calibration-control">
+        <input type="range" id="calibPressure" class="vertical-slider" min="0.1" max="10" step="0.1" value="1.0" title="Calibrage Pression">
+        <span class="calibration-label" id="labelCalibPressure">x1.0</span>
+      </div>
+      <div class="graph-container">
+        <canvas id="pressureChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carte Acceleration Z -->
+  <div class="data-card">
+    <div id="accelDisplay" class="data-title accel-color">Acceleration Z</div>
+    <div class="card-body">
+      <!-- Curseur Calibrage Accélération Z à gauche -->
+      <div class="calibration-control">
+        <input type="range" id="calibAccel" class="vertical-slider" min="0.1" max="10" step="0.1" value="1.0" title="Calibrage Accélération">
+        <span class="calibration-label" id="labelCalibAccel">x1.0</span>
+      </div>
+      <div class="graph-container">
+        <canvas id="accelChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="chart.min.js"></script>
+<script>
+    let pressureData = [];
+    let accelData = [];
+
+    let pressureChart = null;
+    let accelChart = null;
+
+    function setStatus(msg, type = 'info') {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = msg;
+      statusEl.className = `status ${type}`;
+    }
+
+    function initCharts() {
+      try {
+        const optionsCommunes = {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: { ticks: { display: false } },
+            y: { beginAtZero: false }
+          }
+        };
+
+        const ctxP = document.getElementById('pressureChart').getContext('2d');
+        pressureChart = new Chart(ctxP, {
+          type: 'line',
+          data: {
+            labels: Array(20).fill(''),
+            datasets: [{
+              label: 'Pression (hPa)',
+              borderColor: 'rgb(37, 99, 235)',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+              data: pressureData,
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: optionsCommunes
+        });
+
+        const ctxA = document.getElementById('accelChart').getContext('2d');
+        accelChart = new Chart(ctxA, {
+          type: 'line',
+          data: {
+            labels: Array(20).fill(''),
+            datasets: [{
+              label: 'Acceleration Z (m/s²)',
+              borderColor: 'rgb(5, 150, 105)',
+              backgroundColor: 'rgba(5, 150, 105, 0.1)',
+              data: accelData,
+              fill: true,
+              tension: 0.2
+            }]
+          },
+          options: {
+            ...optionsCommunes,
+            scales: {
+              x: { ticks: { display: false } },
+              y: { min: -5, max: 5 }
+            }
+          }
+        });
+      } catch (e) {
+        console.error("Erreur Chart.js :", e);
+      }
+    }
+
+    function updateCharts(pressure, accelZ) {
+      if (pressureData.length >= 20) pressureData.shift();
+      pressureData.push(pressure);
+      if (pressureChart) pressureChart.update();
+
+      if (accelData.length >= 20) accelData.shift();
+      accelData.push(accelZ);
+      if (accelChart) accelChart.update();
+    }
+
+    function readSensorsFromAndroid() {
+      if (window.AndroidBarometer) {
+        const pressure = window.AndroidBarometer.getPressure();
+        const accelZ = window.AndroidBarometer.getVerticalAccel ? window.AndroidBarometer.getVerticalAccel() : 0;
+
+        if (pressure > 0) {
+          document.getElementById('pressureDisplay').textContent = "Pression: " + pressure.toFixed(2) + " hPa";
+          document.getElementById('accelDisplay').textContent = "Acceleration Z: " + accelZ.toFixed(2) + " m/s²";
+          updateCharts(pressure, accelZ);
+          setStatus("Capteurs actifs", "success");
+        } else {
+          setStatus("En attente...", "info");
+        }
+      } else {
+        setStatus("Pont indisponible", "error");
+      }
+    }
+
+    function setupCalibrationListeners() {
+      const sliderP = document.getElementById('calibPressure');
+      const labelP = document.getElementById('labelCalibPressure');
+
+      sliderP.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        labelP.textContent = 'x' + val.toFixed(1);
+        if (window.AndroidBarometer && window.AndroidBarometer.setPressureCalibration) {
+          window.AndroidBarometer.setPressureCalibration(val);
+        }
+      });
+
+      const sliderA = document.getElementById('calibAccel');
+      const labelA = document.getElementById('labelCalibAccel');
+
+      sliderA.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        labelA.textContent = 'x' + val.toFixed(1);
+        if (window.AndroidBarometer && window.AndroidBarometer.setAccelCalibration) {
+          window.AndroidBarometer.setAccelCalibration(val);
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCharts();
+      setupCalibrationListeners();
+      setInterval(readSensorsFromAndroid, 200);
+    });
+</script>
+</body>
+</html>
