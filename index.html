@@ -3,69 +3,84 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Vario</title>  
+  <title>Super Vario</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#000000">
-  <link rel="stylesheet" href="style.css"><script src="chart.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <script src="chart.min.js"></script>
 </head>
 <body id="appBody">
 
   <header>
-    <div class="header-title">
-      <img src="Images/logo12coeur.png" alt="Logo Super Vario" class="header-logo">
+    <div class="header-title" id="headerTitle">
       <h2>Super Vario</h2>
-	        <img src="Images/logo12coeur.png" alt="Logo Super Vario" class="header-logo">
     </div>
-    <button class="hamburger-btn" id="btnHamburger">☰</button>
+
+    <button class="hamburger-btn" id="btnHamburger"
+            aria-label="Afficher ou masquer les réglages"
+            title="Afficher ou masquer les réglages">
+      <img src="Images/param.png" alt="Paramètres">
+    </button>
   </header>
 
   <main>
     <button id="btnStart" class="btn-start">Démarrer le Vario</button>
 
-    <!-- Zone Rendu Visuel -->
     <div class="visual-display">
-      <img id="varioStateImg" src="Images/vario_neutral.png" alt="État Vario" class="vario-image">
+      <img id="varioStateImg" src="Images/coloriageVz.png"
+           alt="État Vario" class="vario-image">
       <div id="valMix" class="mix-value">Mix : 0.00</div>
     </div>
 
-    <!-- Conteneur masquable via le bouton Hamburger -->
     <div id="panelContent">
-      
-      <!-- Réglages Généraux -->
       <div class="global-settings">
         <div class="slider-container">
           <label for="gainCadence">Cadence :</label>
-          <input type="range" id="gainCadence" min="50" max="500" step="10" value="100">
+          <input type="range" id="gainCadence" min="50" max="500"
+                 step="10" value="100">
           <span id="txtCadence">100 ms</span>
         </div>
 
         <div class="slider-container">
-          <label for="gainPartage">Partage (Press/Accel) :</label>
-          <input type="range" id="gainPartage" min="0" max="100" step="1" value="50">
+          <label for="gainPartage" class="label-partage">
+            <span class="label-pression">Baromètre</span>
+          </label>
+          <input type="range" id="gainPartage" class="slider-partage"
+                 min="0" max="100" step="1" value="50">
+          <span class="label-accel">Accélération</span>
           <span id="txtPartage">50/50</span>
         </div>
 
         <div class="slider-container">
           <label for="gainVolume">Volume Son :</label>
-          <input type="range" id="gainVolume" min="0" max="100" step="1" value="80">
+          <input type="range" id="gainVolume" min="0" max="100"
+                 step="1" value="80">
           <span id="txtVolume">80%</span>
         </div>
 
         <div class="slider-container">
-          <label for="gainAlpha">Alpha (Masquage) :</label>
-          <input type="range" id="gainAlpha" min="0.1" max="1.0" step="0.05" value="1.0">
-          <span id="txtAlpha">100%</span>
+          <label for="seuilMonte">Seuil monte :</label>
+          <input type="range" id="seuilMonte" min="0" max="5"
+                 step="0.1" value="0">
+          <span id="txtSeuilMonte">0.0 m/s</span>
+        </div>
+
+        <div class="slider-container">
+          <label for="seuilBaisse">Seuil baisse :</label>
+          <input type="range" id="seuilBaisse" min="0" max="5"
+                 step="0.1" value="0">
+          <span id="txtSeuilBaisse">0.0 m/s</span>
         </div>
       </div>
 
-      <!-- Graphiques et Curseurs Dédiés -->
       <div class="control-panel">
-        
-        <!-- Pression / Baromètre (Vert) -->
         <div class="sensor-block block-pressure">
           <div class="slider-container">
-            <label for="gainPressure" class="sensor-label-pressure">Pression :</label>
-            <input type="range" id="gainPressure" min="0.1" max="2.0" step="0.1" value="1.0">
+            <label for="gainPressure" class="sensor-label-pressure">
+              Baromètre :
+            </label>
+            <input type="range" id="gainPressure" min="0.1" max="2.0"
+                   step="0.1" value="1.0">
             <span id="txtGainPressure">1.0x</span>
           </div>
           <div class="chart-container-small">
@@ -73,18 +88,19 @@
           </div>
         </div>
 
-        <!-- Accéléromètre Z (Orange) -->
         <div class="sensor-block block-accel">
           <div class="slider-container">
-            <label for="gainAccel" class="sensor-label-accel">Accélération :</label>
-            <input type="range" id="gainAccel" min="0.1" max="2.0" step="0.1" value="1.0">
+            <label for="gainAccel" class="sensor-label-accel">
+              Accélération :
+            </label>
+            <input type="range" id="gainAccel" min="0.1" max="2.0"
+                   step="0.1" value="1.0">
             <span id="txtGainAccel">1.0x</span>
           </div>
           <div class="chart-container-small">
             <canvas id="accelChart"></canvas>
           </div>
         </div>
-
       </div>
     </div>
   </main>
@@ -92,233 +108,289 @@
   <script>
     let rawPressure = 1013.25;
     let rawAccelZ = 0;
-    
+    let simulationTime = 0;
     let avgPressure = 1013.25;
     let avgAccelZ = 0;
     let loopInterval = null;
+    let pressureObserver = null;
 
     let hasPressureSensor = false;
     let hasAccelSensor = false;
 
-    // --- Moteur Audio (Web Audio API) ---
     let audioCtx = null;
     let oscillator = null;
     let gainNode = null;
     let nextBeepTime = 0;
 
-    function initAudio() {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
+    const sliderP = document.getElementById('gainPressure');
+    const sliderA = document.getElementById('gainAccel');
+    const sliderCadence = document.getElementById('gainCadence');
+    const sliderPartage = document.getElementById('gainPartage');
+    const sliderVolume = document.getElementById('gainVolume');
+    const sliderSeuilMonte = document.getElementById('seuilMonte');
+    const sliderSeuilBaisse = document.getElementById('seuilBaisse');
 
+    function initAudio() {
+      const AudioContextClass =
+        window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) {
+        console.warn('Web Audio API indisponible.');
+        return;
+      }
+
+      if (!audioCtx) {
+        audioCtx = new AudioContextClass();
         oscillator = audioCtx.createOscillator();
         gainNode = audioCtx.createGain();
 
-        oscillator.type = 'sine'; // Son pur
+        oscillator.type = 'sine';
         oscillator.frequency.value = 440;
-        gainNode.gain.value = 0; // Silencieux au départ
+        gainNode.gain.value = 0;
 
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         oscillator.start();
       }
+
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
     }
 
     function jouerSonVario(mixValue) {
-      if (!audioCtx || !gainNode) return;
+      if (!audioCtx || !gainNode || !oscillator) return;
 
-      const volumeRegle = parseFloat(sliderVolume.value) / 100;
-      if (volumeRegle === 0) {
-        gainNode.gain.value = 0;
+      const volume = Number(sliderVolume.value) / 100;
+      const now = audioCtx.currentTime;
+      const seuilMonte = Number(sliderSeuilMonte.value);
+      const seuilBaisse = Number(sliderSeuilBaisse.value);
+
+      if (volume === 0) {
+        gainNode.gain.setValueAtTime(0, now);
         return;
       }
 
-      const now = audioCtx.currentTime;
-
-      // 1. MONTEE (Mix > 0.3) : Bips hachés modulés
-      if (mixValue > 0.3) {
-        // Fréquence du ton : de 500 Hz à 1600 Hz selon la montée
-        const freq = Math.min(1600, 500 + (mixValue * 250));
+      if (mixValue > seuilMonte) {
+        const freq = Math.min(1600, 500 + mixValue * 250);
         oscillator.frequency.setValueAtTime(freq, now);
 
-        // Durée et intervalle du bip : plus on monte vite, plus le bip est court et rapide
-        const beepDuration = Math.max(0.08, 0.3 - (mixValue * 0.04));
-        const beepInterval = Math.max(0.12, 0.5 - (mixValue * 0.06));
+        const beepDuration = Math.max(0.08, 0.3 - mixValue * 0.04);
+        const beepInterval = Math.max(0.12, 0.5 - mixValue * 0.06);
 
         if (now >= nextBeepTime) {
-          gainNode.gain.setValueAtTime(volumeRegle * 0.3, now);
+          gainNode.gain.setValueAtTime(volume * 0.3, now);
           gainNode.gain.setValueAtTime(0, now + beepDuration);
           nextBeepTime = now + beepInterval;
         }
-      } 
-      // 2. DESCENTE (Mix < -0.5) : Son grave continu
-      else if (mixValue < -0.5) {
-        // Fréquence grave : de 350 Hz en descendant à 200 Hz
-        const freq = Math.max(180, 350 + (mixValue * 80));
+      } else if (mixValue < -seuilBaisse) {
+        const freq = Math.max(180, 350 + mixValue * 80);
         oscillator.frequency.setValueAtTime(freq, now);
-        gainNode.gain.setValueAtTime(volumeRegle * 0.25, now);
-      } 
-      // 3. ZONE NEUTRE (-0.5 <= Mix <= 0.3) : Silence
-      else {
+        gainNode.gain.setValueAtTime(volume * 0.25, now);
+      } else {
         gainNode.gain.setValueAtTime(0, now);
       }
     }
 
-    // Configuration Chart.js
-    const chartConfig = (label, color) => ({
-      type: 'line',
-      data: {
-        labels: Array(30).fill(''),
-        datasets: [{
-          label: label,
-          data: Array(30).fill(0),
-          borderColor: color,
-          borderWidth: 1.5,
-          pointRadius: 0,
-          fill: false
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false,
-        scales: {
-          x: { display: false },
-          y: { grid: { color: '#2a2a2a' }, ticks: { color: '#aaa', font: { size: 9 } } }
+    function creerGraphique(canvasId, label, color) {
+      const canvas = document.getElementById(canvasId);
+
+      return new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: Array(30).fill(''),
+          datasets: [{
+            label,
+            data: Array(30).fill(null),
+            borderColor: color,
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.2,
+            fill: false
+          }]
         },
-        plugins: { legend: { display: false } }
-      }
-    });
-
-    const pressureChart = new Chart(document.getElementById('pressureChart').getContext('2d'), chartConfig('Pression', '#00e676'));
-    const accelChart = new Chart(document.getElementById('accelChart').getContext('2d'), chartConfig('Accélération', '#ff9800'));
-
-    function pushData(chart, value) {
-      chart.data.datasets[0].data.push(value);
-      if (chart.data.datasets[0].data.length > 30) {
-        chart.data.datasets[0].data.shift();
-      }
-      chart.update();
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          scales: {
+            x: { display: false },
+            y: {
+              grid: { color: '#2a2a2a' },
+              ticks: { color: '#aaa', font: { size: 9 } }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      });
     }
 
-    // Références des curseurs
-    const sliderP = document.getElementById('gainPressure');
-    const sliderA = document.getElementById('gainAccel');
-    const sliderCadence = document.getElementById('gainCadence');
-    const sliderPartage = document.getElementById('gainPartage');
-    const sliderVolume = document.getElementById('gainVolume');
-    const sliderAlpha = document.getElementById('gainAlpha');
+    const pressureChart =
+      creerGraphique('pressureChart', 'Pression', '#00e676');
+    const accelChart =
+      creerGraphique('accelChart', 'Accélération', '#ff9800');
 
-    sliderP.addEventListener('input', (e) => document.getElementById('txtGainPressure').textContent = e.target.value + 'x');
-    sliderA.addEventListener('input', (e) => document.getElementById('txtGainAccel').textContent = e.target.value + 'x');
-    sliderVolume.addEventListener('input', (e) => document.getElementById('txtVolume').textContent = e.target.value + '%');
-    
-    sliderAlpha.addEventListener('input', (e) => {
-      const val = e.target.value;
-      document.getElementById('txtAlpha').textContent = Math.round(val * 100) + '%';
-      document.getElementById('appBody').style.opacity = val;
+    function pushData(chart, value) {
+      const data = chart.data.datasets[0].data;
+      data.shift();
+      data.push(Number(value));
+      chart.update('none');
+    }
+
+    sliderP.addEventListener('input', (event) => {
+      document.getElementById('txtGainPressure').textContent =
+        event.target.value + 'x';
     });
 
-    sliderPartage.addEventListener('input', (e) => {
-      const val = e.target.value;
-      document.getElementById('txtPartage').textContent = `${val}/${100 - val}`;
+    sliderA.addEventListener('input', (event) => {
+      document.getElementById('txtGainAccel').textContent =
+        event.target.value + 'x';
     });
 
-    sliderCadence.addEventListener('input', (e) => {
-      const ms = e.target.value;
+    sliderVolume.addEventListener('input', (event) => {
+      document.getElementById('txtVolume').textContent =
+        event.target.value + '%';
+    });
+
+    sliderSeuilMonte.addEventListener('input', (event) => {
+      document.getElementById('txtSeuilMonte').textContent =
+        `${Number(event.target.value).toFixed(1)} m/s`;
+    });
+
+    sliderSeuilBaisse.addEventListener('input', (event) => {
+      document.getElementById('txtSeuilBaisse').textContent =
+        `${Number(event.target.value).toFixed(1)} m/s`;
+    });
+
+    sliderPartage.addEventListener('input', (event) => {
+      const value = Number(event.target.value);
+
+      document.getElementById('txtPartage').textContent =
+        `${value}/${100 - value}`;
+
+      event.target.style.setProperty('--pression', `${value}%`);
+    });
+
+    sliderCadence.addEventListener('input', (event) => {
+      const ms = Number(event.target.value);
       document.getElementById('txtCadence').textContent = ms + ' ms';
-      if (loopInterval) {
+
+      if (loopInterval !== null) {
         clearInterval(loopInterval);
-        loopInterval = setInterval(traiterEtMixer, parseInt(ms));
+        loopInterval = setInterval(traiterEtMixer, ms);
       }
     });
 
-    // Bouton Hamburger
     document.getElementById('btnHamburger').addEventListener('click', () => {
       const panel = document.getElementById('panelContent');
-      panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+      const bouton = document.getElementById('btnHamburger');
+      const vaMasquer = !panel.classList.contains('panel-masque');
+
+      panel.classList.toggle('panel-masque', vaMasquer);
+      bouton.setAttribute('aria-expanded', String(!vaMasquer));
     });
 
-    // Algorithme de mixage
     function traiterEtMixer() {
       if (!hasPressureSensor) {
-        rawPressure += (Math.random() - 0.5) * 0.12;
-      }
-      if (!hasAccelSensor) {
-        rawAccelZ = (Math.random() - 0.5) * 0.5;
+        simulationTime += 0.15;
+
+        const variationLente = Math.sin(simulationTime * 0.5) * 2;
+        const variationRapide = Math.sin(simulationTime * 2) * 0.5;
+        const bruit = (Math.random() - 0.5) * 0.2;
+
+        rawPressure =
+          1013.25 + variationLente + variationRapide + bruit;
       }
 
-      const gainP = parseFloat(sliderP.value);
-      const gainA = parseFloat(sliderA.value);
-      const ratioP = parseFloat(sliderPartage.value) / 100;
+      if (!hasAccelSensor) {
+        rawAccelZ =
+          Math.sin(simulationTime * 4) * 2 +
+          (Math.random() - 0.5) * 0.5;
+      }
+
+      const gainP = Number(sliderP.value);
+      const gainA = Number(sliderA.value);
+      const ratioP = Number(sliderPartage.value) / 100;
       const ratioA = 1 - ratioP;
 
-      avgPressure = (avgPressure * 0.9) + (rawPressure * 0.1);
-      avgAccelZ = (avgAccelZ * 0.9) + (rawAccelZ * 0.1);
+      avgPressure = avgPressure * 0.8 + rawPressure * 0.2;
+      avgAccelZ = avgAccelZ * 0.8 + rawAccelZ * 0.2;
 
       const diffPressure = (rawPressure - avgPressure) * gainP;
       const diffAccel = (rawAccelZ - avgAccelZ) * gainA;
 
-      pushData(pressureChart, avgPressure + diffPressure);
+      pushData(
+        pressureChart,
+        (avgPressure + diffPressure) - 1013.25
+      );
       pushData(accelChart, diffAccel);
 
-      const mixResult = (-diffPressure * 2.0 * ratioP) + (diffAccel * 1.0 * ratioA);
-      document.getElementById('valMix').textContent = `Mix : ${mixResult.toFixed(2)}`;
+      const mixResult =
+        (-diffPressure * 2 * ratioP) + (diffAccel * ratioA);
 
-      const imgElem = document.getElementById('varioStateImg');
+      document.getElementById('valMix').textContent =
+        `Mix : ${mixResult.toFixed(2)}`;
+
+      const image = document.getElementById('varioStateImg');
+
       if (mixResult > 0.3) {
-        imgElem.src = "Images/vario_up.png";
+        image.src = 'Images/vario_up.png';
       } else if (mixResult < -0.3) {
-        imgElem.src = "Images/vario_down.png";
+        image.src = 'Images/vario_down.png';
       } else {
-        imgElem.src = "Images/vario_neutral.png";
+        image.src = 'Images/vario_neutral.png';
       }
 
-      // Émission du son vario
       jouerSonVario(mixResult);
     }
 
     function demarrerCapteurs() {
-      // Activation obligatoire de l'AudioContext lors d'un clic utilisateur sur Chrome Mobile
       initAudio();
 
-      // Baromètre
       if ('PressureObserver' in window) {
         try {
-          const observer = new PressureObserver((records) => {
+          pressureObserver = new PressureObserver((records) => {
             if (records.length > 0) {
               rawPressure = records[records.length - 1].pressure;
               hasPressureSensor = true;
             }
           });
-          observer.observe('cpu');
-        } catch (e) { console.error(e); }
+          pressureObserver.observe('cpu');
+        } catch (error) {
+          console.error('Erreur du capteur de pression :', error);
+        }
       }
 
-      // Accéléromètre
       if (window.DeviceMotionEvent) {
         window.addEventListener('devicemotion', (event) => {
-          if (event.accelerationIncludingGravity && event.accelerationIncludingGravity.z !== null) {
-            rawAccelZ = event.accelerationIncludingGravity.z - 9.81;
+          const acceleration = event.accelerationIncludingGravity;
+
+          if (acceleration && acceleration.z !== null) {
+            rawAccelZ = acceleration.z - 9.81;
             hasAccelSensor = true;
           }
         });
       }
 
-      const cadenceInitial = parseInt(sliderCadence.value);
-      loopInterval = setInterval(traiterEtMixer, cadenceInitial);
+      loopInterval = setInterval(
+        traiterEtMixer,
+        Number(sliderCadence.value)
+      );
     }
 
-    document.getElementById('btnStart').addEventListener('click', () => {
+    document.getElementById('btnStart').addEventListener('click', (event) => {
       demarrerCapteurs();
-      document.getElementById('btnStart').style.display = 'none';
+      event.currentTarget.style.display = 'none';
     });
 
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js'));
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch((error) => {
+          console.error('Erreur du service worker :', error);
+        });
+      });
     }
   </script>
 </body>
