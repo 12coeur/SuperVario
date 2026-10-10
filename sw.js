@@ -1,202 +1,47 @@
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 10px;
-  background-color: #121212;
-  color: #ffffff;
-  text-align: center;
-  transition: opacity 0.2s ease;
-}
+const CACHE_NAME = 'supervario-v2';
 
-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+// 1. Installation immédiate du nouveau Service Worker
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
 
-.hamburger-btn {
-    border: none;
-    background: transparent;
-    padding: 0;
-    cursor: pointer;
-}
+document.getElementById('btnClose').addEventListener('click', () => {
+  window.close();
+});
 
-.hamburger-btn img {
-    width: 48px;
-    height: 48px;
-    display: block;
-}
-
-.header-title {
-  display: none;
-  align-items: center;
-  gap: 8px;
-}
-
-.header-logo {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-}
-
-.header-title h2 {
-  margin: 0;
-}
-
-.hamburger-btn {
-  background: none;
-  border: none;
-  color: #ffffff;
-  font-size: 24px;
-  cursor: pointer;
-}
-#panelContent {
-  overflow: hidden;
-  transition: max-height 300ms ease, opacity 300ms ease;
-  max-height: 1200px;
-  opacity: 1;
-}
-
-#panelContent.panel-masque {
-  max-height: 0;
-  opacity: 0;
-  pointer-events: none;
-}
-/* Apparence commune */
-input[type="range"] {
-  accent-color: #4caf50;
-}
-
-/* Couleurs selon le réglage */
-#gainCadence  { accent-color: #FF2C00  }/* rouge */ /*#ff9800;   orange */
-#gainPartage  { accent-color: #ab47bc; } /* violet */
-#gainVolume   { accent-color: #29b6f6; } /* bleu */
-#gainAlpha    { accent-color: #78909c; } /* gris-bleu */
-#gainPressure { accent-color: #00e676; } /* vert */
-#gainAccel    { accent-color: #ff9800; }  /*orange */ /*#ff5722;   rouge-orangé */
-#seuilMonte,
-#seuilBaisse {
-  accent-color: #2196f3;
-}
-
-.slider-partage {
-  --pression: 50%;
-  appearance: none;
-  -webkit-appearance: none;
-  height: 8px;
-  border-radius: 999px;
-  background: linear-gradient(
-    to right,
-    #00e676 0 var(--pression),
-    #ff9800 var(--pression) 100%
+// 2. Activation et nettoyage des anciens caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('Suppression de l'ancien cache :', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
-}
+});
 
-.slider-partage::-webkit-slider-thumb {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #333;
-}
-
-.slider-partage::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  border: 2px solid #333;
-}
-.slider-container {
-  margin-top: 14px;
-  margin-bottom: 14px;
-}
-.label-partage {
-  color: #fff;
-}
-
-.label-pression {
-  color: #00e676;
-}
-
-.label-vs {
-  color: #fff;
-}
-
-.label-accel {
-  color: #ff9800;
-}
-/* Les deux blocs s’alignent selon l’orientation de l’écran */
-.control-panel {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-/* Cadre regroupant le curseur et le graphique */
-.sensor-block {
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 10px;
-  border: 1px solid #444;
-  border-radius: 8px;
-  background: #181818;
-}
-
-/* Le curseur et son libellé peuvent se réduire sans déborder */
-.sensor-block .slider-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.sensor-block .slider-container label {
-  flex: 0 1 auto;
-}
-
-.sensor-block .slider-container input[type="range"] {
-  flex: 1 1 80px;
-  min-width: 40px;
-}
-
-.sensor-block .slider-container span {
-  flex: 0 0 auto;
-}
-
-.sensor-label-accel {
-  color: #ff9800;
-}
-
-/* Le graphique occupe l’espace disponible */
-.chart-container-small {
-  position: relative;
-  width: 100%;
-  height: 120px;
-  min-width: 0;
-  margin-top: 8px;
-}
-
-.block-pressure {
-  color: #00e676;
-}
-
-/* Paysage : blocs côte à côte */
-@media (orientation: landscape) {
-  .control-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* Portrait : blocs l’un au-dessus de l’autre */
-@media (orientation: portrait) {
-  .control-panel {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
+// 3. Stratégie Réseau d'abord, puis Cache en secours
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Si la réponse réseau est valide, on met à jour le cache
+        if (response && response.status === 200) {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // En cas d'absence de réseau, on utilise le cache
+        return caches.match(event.request);
+      })
+  );
+});
