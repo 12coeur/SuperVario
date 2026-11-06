@@ -1,253 +1,600 @@
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    background-color: rgba(18, 18, 18, var(--app-bg-alpha, 0.5)) !important;
+    color: #ffffff;   
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    overflow: auto;
+}
+
+.dashboard-grid, .card {
+    background-color: rgba(30, 30, 30, clamp(0, calc(var(--app-bg-alpha, 0) * 1.5), 1)) !important;
+}
+
+#varioContainer {
+    background-color: transparent !important;
 }
 
 body {
-  background-color: #121212;
-  color: #ffffff;
-  font-family: Arial, sans-serif;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Header */
 header {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  padding: 10px 20px;
-  background-color: #1a1a1a;
-  border-bottom: 1px solid #333;
-  transition: background-color 0.2s, border-color 0.2s;
-}
-
-header.header-masque {
-  background-color: transparent !important;
-  border-bottom-color: transparent !important;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 10px;
+    padding: 8px 14px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+    position: relative;
 }
 
 .header-center {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  justify-content: center;
-}
-
-.header-right {
-  display: flex;
-  justify-content: flex-end;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 h2, h3 {
-  font-size: 1.1rem;
-  font-weight: bold;
+    font-size: 1.05rem;
+    font-weight: bold;
 }
 
 .sub-title {
-  font-size: 0.85rem;
-  font-weight: normal;
-  opacity: 0.85;
+    font-size: 0.8rem;
+    opacity: 0.85;
 }
 
-.btn-start {
-  background-color: #00e676;
-  color: #000;
-  border: none;
-  padding: 8px 16px;
-  font-weight: bold;
-  border-radius: 4px;
-  cursor: pointer;
+@media (orientation: landscape) {
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 300px minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: start;
+        width: 100%;
+        flex: 1;
+    }
+
+    .box-parametres { grid-column: 1; grid-row: 1; }
+    .box-barometre { grid-column: 1; grid-row: 2; }
+    .box-center { grid-column: 2; grid-row: 1 / span 2; width: 300px; height: calc(100dvh - 60px); }
+    .box-audio { grid-column: 3; grid-row: 1; }
+    .box-accelerometre { grid-column: 3; grid-row: 2; }
 }
 
-.btn-start.active {
-  background-color: #ff5252;
-  color: #fff;
+@media (orientation: portrait) {
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto;
+        align-items: start;
+        width: 100%;
+        flex: 1;
+    }
+
+    .box-center {
+        grid-column: 1;
+        grid-row: 1;
+        width: 100%;
+        height: 50vh;
+        min-height: 0;
+    }
+
+    .box-parametres { grid-column: 1; grid-row: 2; }
+    .box-audio { grid-column: 1; grid-row: 3; }
+    .box-barometre { grid-column: 1; grid-row: 4; }
+    .box-accelerometre { grid-column: 1; grid-row: 5; }
 }
 
-.hamburger-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-}
-
-.hamburger-btn img {
-  width: 32px;
-  height: 32px;
-}
-
-.masque-element {
-  display: none !important;
-}
-
-/* Grille : calcul de la largeur du Vario = reste de l'espace X */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: minmax(280px, auto) 1fr minmax(280px, auto);
-  grid-template-rows: 1fr 1fr;
-  gap: 15px;
-  padding: 15px;
-  flex: 1;
-  height: calc(100vh - 60px);
+.box-center {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    display: flex;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    min-width: 0;
+    min-height: 320px;
 }
 
 .card {
-  background-color: #1e1e1e;
-  border-radius: 8px;
-  padding: 15px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
 }
 
-/* Couleurs des encadrés extérieurs */
-.card-reglages { border: 2px solid #ff007f; }
+.card-reglages { border: 2px solid #ff007f; margin: 5px; }
 .card-reglages h3 { color: #ff007f; }
 
-.card-audio { border: 2px solid #00b0ff; }
+.card-audio { border: 2px solid #00b0ff; margin: 5px; }
 .card-audio h3 { color: #00b0ff; }
 
-.card-baro { border: 2px solid #00e676; }
+.card-baro { border: 2px solid #00e676; margin: 5px; }
 .card-baro h3 { color: #00e676; }
 
-.card-accel { border: 2px solid #ff9800; }
-.card-accel h3 { color: #ff9800; }
-
-.box-top-left     { grid-column: 1; grid-row: 1; }
-.box-bottom-left  { grid-column: 1; grid-row: 2; }
-.box-top-right    { grid-column: 3; grid-row: 1; }
-.box-bottom-right { grid-column: 3; grid-row: 2; }
-
-/* Encadré central : sans fond coloré, occupe toute la hauteur et largeur disponible */
-.box-center {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  background-color: transparent !important;
-  border: none !important;
-  padding: 0 !important;
-  display: flex;
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-}
+.card-accel { border: 2px solid #ff9800; margin: 5px; }
+.card-accel h3 { color: orange; }
 
 .visual-display {
-  position: relative;
-  width: 100%;
-  height: 100%;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
 }
 
 .vario-stack {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.vario-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 1;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-inline: auto;
+    transform-origin: center center;
+    will-change: transform;
 }
 
 .vario-content {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
+    position: relative;
+    z-index: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
 }
 
-/* Coloriage : occupation maximale en X et Y */
+.vario-coloriage {
+    position: relative;
+    flex: 1 1 auto;
+    height: 100%;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .vario-fg {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: fill !important;
-  display: block;
+    position: relative;
+    flex: 1 1 auto;
+    height: 100% !important;
+    width: auto !important;
+    object-fit: fill !important;
+    display: block;
+    min-width: 0;
 }
 
-/* Aiguille centrée verticalement */
+.vario-barre-v {
+    position: relative;
+    flex: 0 0 auto;
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+}
+
 .vario-needle {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100% !important;
-  height: auto;
-  transform: translateY(-50%);
-  pointer-events: none;
-  z-index: 3;
-  transition: transform 0.1s linear;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100% !important;
+    height: auto;
+    transform: translateY(-50%);
+    pointer-events: none;
+    z-index: 10;
+    transition: transform 0.1s linear;
 }
 
-/* Sliders */
 .slider-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+    min-width: 0;
 }
 
 .slider-container input[type="range"] {
-  flex: 1;
+    flex: 1;
+    min-width: 0;
 }
 
 .slider-partage {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 8px;
-  border-radius: 4px;
-  background: linear-gradient(to right, #00e676 var(--pression, 50%), #ff9800 var(--pression, 50%));
-  outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(
+        to right,
+        #00e676 var(--pression, 50%),
+        #ff9800 var(--pression, 50%)
+    );
+    outline: none;
 }
-
-.label-pression { color: #00e676; font-weight: bold; }
-.label-accel { color: #ff9800; font-weight: bold; }
 
 .chart-container-small {
-  height: 100px;
-  width: 100%;
+    height: 100px;
+    width: 100%;
+    min-width: 0;
 }
+
+.btn-start,
+.btn-config,
+.btn-audio-test,
+.btn-sensor-control {
+    width: 35px !important;
+    height: 35px !important;
+    min-width: 35px;
+    min-height: 35px;
+    padding: 2px !important;
+    box-sizing: border-box;
+    background-color: #1a3a6b !important;
+    border: 1px solid #4d7ab5 !important;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 35px;
+}
+
+.btn-start { color: transparent; font-size: 0; }
+.btn-start img,
+.btn-config img,
+.btn-audio-test img,
+.btn-sensor-control img,
+.hamburger-btn img {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+}
+
+.hamburger-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 30;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0;
+    width: 48px;
+    height: 48px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+
+.btn-start.test-actif,
+.btn-config.test-actif,
+.btn-audio-test.test-actif {
+    background-color: #ff0000 !important;
+    border-color: #ff0000 !important;
+}
+
+.voyant-inline {
+    width: 35px !important;
+    height: 35px !important;
+    min-width: 35px;
+    min-height: 35px;
+    object-fit: contain;
+    flex: 0 0 35px;
+    border-radius: 50%;
+}
+
+.voyant-inline.ok { background: rgba(0, 230, 118, 0.55); }
+.voyant-inline.neutre { background: rgba(0, 230, 118, 0.15); }
+
+@keyframes clignote-simulation {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
+}
+
+.simulation-label {
+    display: none;
+    font-weight: bold;
+    font-size: 0.85rem;
+    animation: clignote-simulation 0.8s infinite;
+}
+
+.simulation-label.visible { display: inline-block; }
+
+#appBody.settings-hidden .box-outer { display: none !important; }
+#appBody.settings-hidden #mainHeader { display: none !important; }
+#appBody.settings-hidden .dashboard-grid { display: block; }
+
+#appBody.settings-hidden .box-center {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+}
+
+/* Mode masqué : tout le fond de page doit être transparent pour que
+   l'alpha du coloriage (et de la fenêtre Android) puisse « passer ».
+   Les règles !important plus bas (#0F2B4C) sont neutralisées ici. */
+html:has(#appBody.settings-hidden),
+html:has(#appBody.settings-hidden) body,
+#appBody.settings-hidden,
+#appBody.settings-hidden .dashboard-grid,
+#appBody.settings-hidden .box-center,
+#appBody.settings-hidden #varioContainer,
+#appBody.settings-hidden .visual-display,
+#appBody.settings-hidden .vario-stack,
+#appBody.settings-hidden .vario-content,
+#appBody.settings-hidden .vario-coloriage {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* ✅ FIX : curseur de drag explicite + état actif. */
+#varioContainer {
+    /* le drag doit pouvoir démarrer même en mode tactile */
+    touch-action: none;
+    /* évite de sélectionner le texte pendant le drag */
+    user-select: none;
+    -webkit-user-select: none;
+}
+#varioContainer.dragging {
+    cursor: grabbing;
+    box-shadow: 0 0 25px rgba(255, 255, 255, 0.25);
+}
+/* En mode desktop, laisse deviner la préhension */
+@media (hover: hover) and (pointer: fine) {
+    .visual-display { cursor: grab; }
+    #varioContainer.dragging { cursor: grabbing; }
+}
+
+#msgPression,
+#msgAccel {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 20px 10px;
+}
+
+.header-config {
+    margin: 0;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.sensor-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 8px;
+    min-height: 35px;
+}
+
+.simulation-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
 .audio-test {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+    margin-top: 10px;
 }
 
-.btn-audio-test {
-  width: 50px;
-  height: 50px;
-  padding: 1px;
-  border: 1px solid #555;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+.sound-selectors {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1px;
+    min-width: 0;
 }
 
-.btn-audio-test img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  pointer-events: none;
+.btn-sound {
+    position: relative;
+    flex: 1 1 0;
+    height: 35px;
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.btn-audio-test:active {
-  background: rgba(255, 255, 255, 0.22);
-  transform: scale(0.96);
+.btn-sound .img-sound {
+    height: 35px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    display: block;
+}
+
+.btn-sound::after {
+    content: attr(data-label);
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0,0,0,0.75);
+    padding: 1px 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 10;
+}
+
+.btn-sound:hover::after { opacity: 1; }
+.btn-sound:hover .img-sound { content: url("Images/survol.png"); }
+.btn-sound.choix-actif .img-sound { content: url("Images/choix.png"); }
+
+.btn-audio-test.test-actif {
+    background-color: #00e676 !important;
+    border-color: #00e676 !important;
+    box-shadow: 0 0 12px rgba(0, 230, 118, 0.6);
+}
+
+.img-40 {
+    height: 40px;
+    width: auto;
+}
+
+#vario-content {
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+html.overlay-mode,
+html.overlay-mode body {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden !important;
+}
+
+html.overlay-mode #varioContainer,
+html.overlay-mode .visual-display {
+    touch-action: none;
+}
+
+html.overlay-mode #btnHamburger {
+    pointer-events: auto;
+}
+
+/* Fenêtre flottante : seul le contenu Vario est affiché (pas d'entête, pas de cadres),
+   dès le premier affichage, avant même l'exécution du JavaScript. */
+html.overlay-mode #mainHeader,
+html.overlay-mode .box-outer {
+    display: none !important;
+}
+
+html.overlay-mode .dashboard-grid { display: block; }
+
+html.overlay-mode .box-center {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    z-index: 5;
+}
+
+/* Overlay / transparence : la page ne peint plus son fond,
+   pour que l'alpha du coloriage et de la fenêtre Android passent. */
+html.overlay-mode,
+html.overlay-mode body,
+html.overlay-transparent,
+html.overlay-transparent body,
+html.overlay-mode .dashboard-grid,
+html.overlay-mode .box-center,
+html.overlay-mode #varioContainer,
+html.overlay-mode .visual-display,
+html.overlay-mode .vario-stack,
+html.overlay-mode .vario-content,
+html.overlay-mode .vario-coloriage {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+html,
+body {
+    background-color: #0F2B4C !important;
+    color: #f2f6ff;
+}
+
+header {
+    background-color: #0b1b31;
+    border-bottom-color: #203653;
+}
+
+.dashboard-grid,
+.card {
+    background-color: #0d1c30 !important;
+}
+
+.card {
+    color: #f2f6ff;
+}
+.card {
+    background-color: #2E0829 !important;
+}
+
+#msgPression,
+#msgAccel {
+    color: #bdcbe0;
+}
+
+/* ================================================================
+   Transparence mode masqué / overlay — DOIT rester en fin de fichier
+   pour gagner contre les #0F2B4C / #0d1c30 !important ci-dessus.
+   Classe html.settings-hidden-page posée par le JS (sans dépendre de :has).
+   ================================================================ */
+html.settings-hidden-page,
+html.settings-hidden-page body,
+html.overlay-mode,
+html.overlay-mode body,
+html.overlay-transparent,
+html.overlay-transparent body,
+body#appBody.settings-hidden {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+html.settings-hidden-page .dashboard-grid,
+html.settings-hidden-page .box-center,
+html.settings-hidden-page #varioContainer,
+html.settings-hidden-page .visual-display,
+html.settings-hidden-page .vario-stack,
+html.settings-hidden-page .vario-content,
+html.settings-hidden-page .vario-coloriage,
+html.overlay-mode .dashboard-grid,
+html.overlay-mode .box-center,
+html.overlay-mode #varioContainer,
+html.overlay-mode .visual-display,
+html.overlay-mode .vario-stack,
+html.overlay-mode .vario-content,
+html.overlay-mode .vario-coloriage,
+#appBody.settings-hidden .dashboard-grid,
+#appBody.settings-hidden .box-center,
+#appBody.settings-hidden #varioContainer,
+#appBody.settings-hidden .visual-display,
+#appBody.settings-hidden .vario-stack,
+#appBody.settings-hidden .vario-content,
+#appBody.settings-hidden .vario-coloriage {
+    background: transparent !important;
+    background-color: transparent !important;
 }
