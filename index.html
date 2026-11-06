@@ -2,141 +2,252 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Super Vario</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#000000">
+
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="chart.min.js"></script>
 </head>
+
 <body id="appBody">
 
-  <header id="mainHeader">
-    <div class="header-left"></div>
+<header id="mainHeader">
+  <!-- 1. Bouton d'arrêt -->
+  <button id="btnClose" class="btn-start" title="Arrêt" aria-label="Arrêt">
+    <img src="Images/arret.png" alt="Arrêt">
+  </button>
 
-    <div class="header-center">
-      <button class="hamburger-btn" id="btnHamburger"
-              aria-label="Afficher ou masquer les réglages"
-              title="Afficher ou masquer les réglages">
-        <img src="Images/param.png" alt="Paramètres">
-      </button>
-      <div class="header-title" id="headerTitle">
-        <h2>Super <span class="sub-title">Vario</span></h2>
+  <!-- 2. Bouton Enregistrer -->
+  <button id="btnEnregistrer" class="btn-config header-config" title="Enregistrer les réglages">
+    <img src="Images/enregistre.png" alt="Enregistrer">
+  </button>
+
+  <!-- 3. Titre -->
+  <h2>Super Vario</h2>
+
+  <!-- 6. Bouton Lire -->
+  <button id="btnLire" class="btn-config header-config" title="Lire les réglages enregistrés">
+    <img src="Images/lecture.png" alt="Lire">
+  </button>
+
+  <!-- 5. Sous-titre en rouge -->
+  <span class="sub-title" style="color: #ff1744;"><strong>ASDE Coeur</strong></span> 
+  
+  <img src="Images/Logo.png" alt="Une création ASDE coeur " class="img-40">
+</header>
+
+<main class="dashboard-grid">
+
+  <!-- Paramètres : à gauche du vario en paysage -->
+  <section class="box-outer box-parametres">
+    <div class="card card-reglages">
+      <h3>Paramètres</h3>
+
+      <div class="slider-container">
+        <label for="gainPartage">Mix</label>
+        <input type="range" id="gainPartage" class="slider-partage"
+               min="0" max="100" value="90">
+        <span id="txtPartage"></span>
       </div>
+
+      <div class="slider-container">
+        <label for="amplitudeAiguille">Amplitude aiguille</label>
+        <input type="range" id="amplitudeAiguille" min="10" max="100" value="50">
+        <span id="txtAmplitudeAiguille">50</span>
+      </div>
+	  
+      <div class="slider-container">
+        <label for="gainCadence">Cadence</label>
+        <input type="range" id="gainCadence" min="50" max="999" value="100">
+        <span id="txtCadence">100 ms</span>
+      </div>
+
+      <div class="slider-container">
+        <label for="largeurVario">Largeur Vario</label>
+        <input type="range" id="largeurVario" min="5" max="200" value="100">
+        <span id="txtLargeurVario">100%</span>
+      </div>
+
+      <div class="slider-container">
+        <label for="hauteurVario">Hauteur Vario</label>
+        <input type="range" id="hauteurVario" min="10" max="200" value="100">
+        <span id="txtHauteurVario">100%</span>
+      </div>
+
+      <div class="slider-container">
+        <label for="alphaVario">Alpha vario</label>
+        <input type="range" id="alphaVario" min="5" max="100" step="5" value="50">
+        <span id="txtAlphaVario">50%</span>
+      </div>
+
     </div>
+  </section>
 
-    <div class="header-right">
-      <button id="btnStart" class="btn-start btn-toggleable">Marche / Arrêt</button>
-    </div>
-  </header>
-
-  <main class="dashboard-grid">
-
-    <!-- ENCADRÉ PRINCIPAL (Occupant 100% de la hauteur et du reste en X, sans texte Vz) -->
-    <div class="card box-center">
-      <div class="visual-display">
-        <div class="vario-stack">
-          <img id="varioBackgroundImg" src="Images/fondnoirvario.png" alt="Fond Vario" class="vario-bg">
-          
-          <div class="vario-content">
-            <img id="varioStateImg" src="Images/coloriageVz.png" alt="État Vario" class="vario-fg">
-            <img id="varioNeedleImg" src="Images/Aiguille.png" alt="Aiguille" class="vario-needle">
+  <!-- Vario central, hamburger devant l'aiguille -->
+  <section class="box-center">
+    <div id="varioContainer" class="visual-display">
+      <div id="varioStack" class="vario-stack">
+        <div class="vario-content">
+          <div class="vario-coloriage">
+            <img class="vario-fg" src="Images/coloriageVz.png" alt="Coloriage Vz">
+            <button id="btnHamburger" class="hamburger-btn" aria-expanded="true">
+              <img id="imgHamburger" src="Images/param.gif" alt="Paramètres">
+            </button>
           </div>
+          <img class="vario-barre-v" src="Images/barreV.png" alt="Barre V">
+
+          <img id="varioNeedleImg" class="vario-needle"
+               src="Images/aiguille.png" alt="Aiguille Vario">
         </div>
       </div>
     </div>
+  </section>
 
-    <!-- ENCADRÉ 1 : Haut Gauche (Fuschia) -->
-<div class="card box-outer box-top-left card-reglages">
-  <h3>Vario, mixage</h3>
-
-  <div class="slider-container">
-    <label for="gainCadence">Cadence :</label>
-    <input type="range" id="gainCadence" min="50" max="500" step="10" value="100">
-    <span id="txtCadence">100 ms</span>
-  </div>
-
-  <div class="slider-container">
-    <label for="gainPartage" class="label-partage">
-      <span class="label-pression">hPa</span>
-    </label>
-    <input type="range" id="gainPartage" class="slider-partage" min="0" max="100" step="1" value="50">
-    <span class="label-accel">Vz</span>
-    <span id="txtPartage">50/50</span>
-  </div>
-
-  <div class="slider-container">
-    <label for="tailleVario">Taille Vario :</label>
-    <input type="range" id="tailleVario" min="50" max="200" step="5" value="100">
-    <span id="txtTailleVario">100%</span>
-  </div>
-
-  <div class="slider-container">
-    <label for="amplitudeAiguille">Amplitude aiguille :</label>
-    <input type="range" id="amplitudeAiguille" min="10" max="60" step="1" value="30">
-    <span id="txtAmplitudeAiguille">30</span>
-  </div>
-</div>
-
-    <!-- ENCADRÉ 2 : Haut Droite (Bleu) -->
-    <div class="card box-outer box-top-right card-audio">
+  <!-- Audio : à droite du vario en paysage -->
+  <section class="box-outer box-audio">
+    <div class="card card-audio">
       <h3>Audio</h3>
+
       <div class="slider-container">
-        <label for="gainVolume">Volume :</label>
-        <input type="range" id="gainVolume" min="0" max="100" step="1" value="80">
+        <label for="gainVolume">Volume</label>
+        <input type="range" id="gainVolume" min="0" max="100" value="80">
         <span id="txtVolume">80%</span>
       </div>
 
       <div class="slider-container">
-        <label for="seuilMonte">Seuil monte :</label>
-        <input type="range" id="seuilMonte" min="0" max="5" step="0.1" value="0">
-        <span id="txtSeuilMonte">0.0 m/s</span>
+        <label for="sonAigu">Aigus</label>
+        <input type="range" id="sonAigu" min="0" max="100" value="50">
+        <span id="txtSonAigu">50%</span>
       </div>
 
       <div class="slider-container">
-        <label for="seuilBaisse">Seuil baisse :</label>
-        <input type="range" id="seuilBaisse" min="0" max="5" step="0.1" value="0">
-        <span id="txtSeuilBaisse">0.0 m/s</span>
+        <label for="seuilMonte">Seuil montée</label>
+        <input type="range" id="seuilMonte"
+               min="0" max="5" step="0.1" value="0.1">
+        <span id="txtSeuilMonte">0.1 m/s</span>
       </div>
-<div class="audio-test">
-  <button id="btnTestMonte" type="button" class="btn-audio-test" aria-label="Tester le son de montée">
-    <img src="Images/sonverslehaut.png" alt="Montée">
-  </button>
 
-  <button id="btnTestBaisse" type="button" class="btn-audio-test" aria-label="Tester le son de descente">
-    <img src="Images/sonverslebas.png" alt="Descente">
-  </button>
-</div>
+      <div class="slider-container">
+        <label for="sonGraves">Graves</label>
+        <input type="range" id="sonGraves" min="0" max="100" value="50">
+        <span id="txtSonGraves">50%</span>
+      </div>
+
+      <div class="slider-container">
+        <label for="seuilBaisse">Seuil baisse</label>
+        <input type="range" id="seuilBaisse"
+               min="0" max="5" step="0.1" value="0.1">
+        <span id="txtSeuilBaisse">0.1 m/s</span>
+      </div>
+
+      <div class="audio-test">
+        <button id="btnTestMonte" class="btn-audio-test" title="Test son montée">
+          <img src="Images/sonverslehaut.png" alt="Test montée">
+        </button>
+
+        <div id="soundSelectors" class="sound-selectors" aria-label="Choix du son">
+          <button type="button" class="btn-sound" data-sound="M1" data-label="M1" title="Son montée 1"><img src="Images/potentiel.png" alt="M1" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="M2" data-label="M2" title="Son montée 2"><img src="Images/potentiel.png" alt="M2" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="M3" data-label="M3" title="Son montée 3"><img src="Images/potentiel.png" alt="M3" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="M4" data-label="M4" title="Son montée 4"><img src="Images/potentiel.png" alt="M4" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="M5" data-label="M5" title="Son montée 5"><img src="Images/potentiel.png" alt="M5" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="M6" data-label="M6" title="Son montée 6"><img src="Images/potentiel.png" alt="M6" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="M7" data-label="M7" title="Son montée 7"><img src="Images/potentiel.png" alt="M7" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="B1" data-label="B1" title="Son baisse 1"><img src="Images/potentiel.png" alt="B1" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="B2" data-label="B2" title="Son baisse 2"><img src="Images/potentiel.png" alt="B2" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="B3" data-label="B3" title="Son baisse 3"><img src="Images/potentiel.png" alt="B3" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="B4" data-label="B4" title="Son baisse 4"><img src="Images/potentiel.png" alt="B4" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="B5" data-label="B5" title="Son baisse 5"><img src="Images/potentiel.png" alt="B5" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="B6" data-label="B6" title="Son baisse 6"><img src="Images/potentiel.png" alt="B6" class="img-sound"></button>
+          <button type="button" class="btn-sound" data-sound="B7" data-label="B7" title="Son baisse 7"><img src="Images/potentiel.png" alt="B7" class="img-sound"></button>
+        </div>
+
+        <button id="btnTestBaisse" class="btn-audio-test" title="Test son descente">
+          <img src="Images/sonverslebas.png" alt="Test descente">
+        </button>
+      </div>
     </div>
+  </section>
 
-    <!-- ENCADRÉ 3 : Bas Gauche (Vert) -->
-    <div class="card box-outer box-bottom-left card-baro sensor-block block-pressure">
-      <h3>Baromètre</h3>
-      <div class="slider-container">
-        <label for="gainPressure" class="sensor-label-pressure">Sensibilité :</label>
-        <input type="range" id="gainPressure" min="0.1" max="2.0" step="0.1" value="1.0">
-        <span id="txtGainPressure">1.0x</span>
+  <!-- Baromètre : sous Paramètres en paysage -->
+  <section class="box-outer box-barometre">
+    <div class="card card-baro">
+      <div class="sensor-controls">
+        <h3 class="h3-with-voyant">
+          Baromètre
+          <img id="voyantPression" class="voyant-inline neutre" src="Images/voyantNeutre.png" alt="État pression">
+        </h3>
+        <button id="btnStopPression" class="btn-sensor-control" type="button" title="Arrêter la lecture du baromètre">
+          <img id="imgStopPression" src="Images/arret.png" alt="Arrêter le baromètre">
+        </button>
+        <div class="simulation-control">
+          <button id="btnTestPression" class="btn-audio-test" type="button" title="Simulation pression">
+            <img src="Images/simulPression.png" alt="Simulation pression">
+          </button>
+          <span id="labelSimulationPression" class="simulation-label">Simulation pression</span>
+        </div>
       </div>
-      <div class="chart-container-small">
+
+      <div class="slider-container">
+        <label for="gainPressure">Pression</label>
+        <input type="range" id="gainPressure" min="0.1" max="10" step="0.1" value="3">
+        <span id="txtGainPressure">3.0x</span>
+      </div>
+	  
+      <div class="slider-container">
+        <label for="lissagePressure">Lissage</label>
+        <input type="range" id="lissagePressure" min="0" max="95" value="80">
+        <span id="txtLissagePressure">80%</span>
+      </div>
+
+      <div id="blocGraphPression" class="chart-container-small">
         <canvas id="pressureChart"></canvas>
       </div>
+      <p id="msgPression">Aucun capteur pression</p>
     </div>
+  </section>
 
-    <!-- ENCADRÉ 4 : Bas Droite (Orange) -->
-    <div class="card box-outer box-bottom-right card-accel sensor-block block-accel">
-      <h3>Accéléromètre</h3>
-      <div class="slider-container">
-        <label for="gainAccel" class="sensor-label-accel">Sensibilité :</label>
-        <input type="range" id="gainAccel" min="0.1" max="2.0" step="0.1" value="1.0">
-        <span id="txtGainAccel">1.0x</span>
+  <!-- Accéléromètre : sous Audio en paysage -->
+  <section class="box-outer box-accelerometre">
+    <div class="card card-accel">
+      <div class="sensor-controls">
+        <h3 class="h3-with-voyant">
+          Accéléromètre
+          <img id="voyantAccel" class="voyant-inline neutre" src="Images/voyantNeutre.png" alt="État accélération">
+        </h3>
+        <button id="btnStopAccel" class="btn-sensor-control" type="button" title="Arrêter la lecture de l'accéléromètre">
+          <img id="imgStopAccel" src="Images/arret.png" alt="Arrêter l'accéléromètre">
+        </button>
+        <div class="simulation-control">
+          <button id="btnTestAccel" class="btn-audio-test" type="button" title="Simulation accélération">
+            <img src="Images/simulAccel.png" alt="Simulation accélération">
+          </button>
+          <span id="labelSimulationAccel" class="simulation-label">Simulation accélération</span>
+        </div>
       </div>
-      <div class="chart-container-small">
+
+      <div class="slider-container">
+        <label for="gainAccel">Puissance</label>
+        <input type="range" id="gainAccel" min="0.1" max="10" step="0.1" value="5">
+        <span id="txtGainAccel">5.0x</span>
+      </div>
+
+      <div class="slider-container">
+        <label for="amortissementAccel">Amortissement</label>
+        <input type="range" id="amortissementAccel" min="0" max="100" value="20">
+        <span id="txtAmortissementAccel">20%</span>
+      </div>
+
+      <div id="blocGraphAccel" class="chart-container-small">
         <canvas id="accelChart"></canvas>
       </div>
+      <p id="msgAccel">Aucun capteur accélération</p>
     </div>
+  </section>
 
-  </main>
+</main>
 
-  <script src="Script.js" defer></script>
+<script src="Script.js"></script>
 </body>
 </html>
