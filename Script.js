@@ -35,6 +35,29 @@ let overlayLance = false;   // vrai si la fenêtre flottante Android a été lan
 let minuterieArrierePlanOverlay = null;
 
 let accelRefuse = false;
+// Vitesse verticale estimée par l'accéléromètre seul (m/s) : intégrale de l'accélération,
+// avec « fuite » pour éviter la dérive. C'est elle (et non l'accélération) qui pilote le son.
+// ---- Réglages de la réactivité accéléromètre (à ajuster à l'essai) ----
+const TAU_VITESSE_ACCEL = 0.8;   // s : mémoire de l'intégrateur (plus petit = moins de rémanence)
+const CALME_DELAI_S = 0.25;      // s sans mouvement avant de ramener la vitesse à zéro
+const TAU_VITESSE_CALME = 0.12;  // s : vitesse de retour à zéro dans ce cas
+const VITESSE_ANTI_RESSORT = 0.25; // m/s : franchissement de zéro sous ce seuil = on arrête (pas de rebond)
+const SEUIL_DECEL_ACCEL = 0.12;  // m/s² : accélération opposée à la vitesse = fin du geste
+const VERROU_MS = 800;           // ms : après la fin d'un geste, la phase de freinage est ignorée
+const LISSAGE_MIX = 0.6;         // 0 à 1 : plus petit = signal plus vif (avant : 0,75)
+const ZONE_MORTE_ACCEL = 0.08;   // m/s² : en dessous, on considère que c'est du bruit
+const TAU_BIAIS_ACCEL = 4.0;     // s : le décalage permanent du capteur est retiré en continu
+const SEUIL_SON_MINI = 0.05;     // plancher des seuils (unité du mix) : un seuil à 0 déclencherait sur le bruit
+const HYSTERESIS_SON = 0.5;      // un son en cours ne s'arrête que sous 50 % de son seuil
+const DUREE_MINI_SON_MS = 150;   // un son démarré joue au moins 150 ms
+let biaisAccel = 0;
+let verrouJusqua = 0;            // fin du verrou anti-retour (ms)
+let directionVerrou = 0;         // sens du geste terminé (+1 haut, -1 bas)
+let calmeAccel = 0;              // durée (s) pendant laquelle l'accélération reste dans la zone morte
+let debutSonAuto = 0;
+let vitesseAccel = 0;
+let accelFiltree = 0;          // accélération verticale lissée (filtre passe-bas)
+let dernierTempsFiltreAccel = 0;
 
 // ---------- Persistance du refus accéléromètre ----------
 const CLE_REFUS_ACCEL = 'SuperVario.accelRefuse';
@@ -203,9 +226,14 @@ const KP_VERTICALE = 1.0;
 const PORTE_DYNAMIQUE = 0.18;
 const ATTENUATION_DYNAMIQUE = 0.3;
 
-const estIOSVario = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const FACTEUR_ROTATION = estIOSVario ? (Math.PI / 180) : 1;
+// Unité du gyroscope (rotationRate) : degrés par seconde selon la spécification, sur iOS comme
+// sur les Chrome/WebView Android récents. Seuls les très anciens Chrome Android donnaient des rad/s.
+// Se tromper dans ce sens est sans gravité (le filtre se recale sur la gravité), alors que
+// prendre des degrés pour des radians multiplie les rotations par 57 et fausse toute la verticale.
+const FACTEUR_ROTATION = Math.PI / 180;
+
+// Sens de l'accélération verticale : 1 = normal ; -1 si le son « monte » quand on descend.
+const SIGNE_ACCEL = 1;
 
 let qAttitude = [1, 0, 0, 0];
 let verticaleInitialisee = false;
@@ -294,10 +322,59 @@ function demarrerEcouteAccel() {
     if (deviceMotionHandler || !window.DeviceMotionEvent) return;
     deviceMotionHandler = (e) => {
         if (accelArretee || accelRefuse) return;
-        const aVerticale = traiterMouvement(
+        const aBrute = traiterMouvement(
             e.accelerationIncludingGravity, e.rotationRate, performance.now());
-        if (aVerticale !== null) {
-            rawAccelZ = aVerticale;
+        if (aBrute !== null) {
+            const aVerticale = SIGNE_ACCEL * aBrute;
+            // Filtre passe-bas à CHAQUE échantillon (~60 Hz), avant l'échantillonnage de la boucle
+            // à 100 ms : sans lui, on ne prend qu'une mesure brute sur six et le bruit
+            // (tremblement de la main, vibrations) est replié dans le signal.
+            // Le curseur « Amortissement » règle la constante de temps (0 % = 0,02 s ; 100 % = 0,62 s).
+            const maintenant = performance.now();
+            if (dernierTempsFiltreAccel === 0) {      // première mesure : on part de l'état courant
+                accelFiltree = aVerticale;
+                biaisAccel = aVerticale;
+            }
+            const dtF = Math.min(0.2, Math.max(0.001, (maintenant - dernierTempsFiltreAccel) / 1000));
+            dernierTempsFiltreAccel = maintenant;
+            const tau = 0.02 + (Number(sliderAmortissement?.value ?? 20) / 100) * 0.6;
+            accelFiltree += (dtF / (tau + dtF)) * (aVerticale - accelFiltree);
+
+            rawAccelZ = accelFiltree;
+
+            // Retire le décalage permanent (capteur non calibré à 9,81, inclinaison résiduelle) :
+            // sans cela, un décalage de 0,3 m/s² donne une « vitesse » de 0,6 m/s en permanence.
+            biaisAccel += (dtF / (TAU_BIAIS_ACCEL + dtF)) * (accelFiltree - biaisAccel);
+            const aSansBiais = accelFiltree - biaisAccel;
+            let aUtile = Math.abs(aSansBiais) < ZONE_MORTE_ACCEL ? 0 : aSansBiais;
+
+            // Anti-retour (« boomerang ») : un geste vers le haut se termine par un freinage, qui
+            // serait lu comme un mouvement vers le bas (et inversement). Dès que l'accélération
+            // s'oppose à la vitesse, le geste est terminé : on coupe la vitesse (le son s'arrête)
+            // et on ignore le freinage pendant VERROU_MS. La pression prend ensuite le relais.
+            if (vitesseAccel !== 0 && Math.abs(aUtile) > SEUIL_DECEL_ACCEL
+                && Math.sign(aUtile) !== Math.sign(vitesseAccel)) {
+                directionVerrou = Math.sign(vitesseAccel);
+                verrouJusqua = maintenant + VERROU_MS;
+                vitesseAccel = 0;
+                aUtile = 0;
+            } else if (maintenant < verrouJusqua && Math.sign(aUtile) === -directionVerrou) {
+                aUtile = 0;
+            }
+
+            // Immobilité : la vitesse est ramenée vite à zéro.
+            calmeAccel = aUtile === 0 ? calmeAccel + dtF : 0;
+            const tauV = calmeAccel > CALME_DELAI_S ? TAU_VITESSE_CALME : TAU_VITESSE_ACCEL;
+
+            // Intégration : accélération -> vitesse verticale.
+            const vitessePrec = vitesseAccel;
+            vitesseAccel = vitesseAccel * Math.exp(-dtF / tauV) + aUtile * dtF;
+
+            // Anti-ressort : quand la décélération ramène la vitesse à zéro, elle ne doit pas
+            // la faire passer de l'autre côté (ce serait un faux son inverse après chaque geste).
+            if (vitessePrec * vitesseAccel < 0 && Math.abs(vitesseAccel) < VITESSE_ANTI_RESSORT) {
+                vitesseAccel = 0;
+            }
             if (!hasAccelSensor) {
                 hasAccelSensor = true;
                 mettreAJourVoyants();
@@ -318,6 +395,13 @@ function arreterEcouteAccel() {
     dernierTempsMouvement = 0;
     hasAccelSensor = false;
     rawAccelZ = 0;
+    accelFiltree = 0;
+    vitesseAccel = 0;
+    biaisAccel = 0;
+    calmeAccel = 0;
+    verrouJusqua = 0;
+    directionVerrou = 0;
+    dernierTempsFiltreAccel = 0;
     mettreAJourVoyants();
     mettreAJourAffichageCapteurs();
 }
@@ -507,28 +591,39 @@ function choisirSon(type, nom) {
     audio.pause();
     audio.currentTime = 0;
     audio.src = `Sons/${nom}.wav`;
+    audio._nomSon = nom;
     audio.load();
     afficherChoixSon();
 }
 
 function jouerSonSelectionne(valeurMixee) {
     if (testSonEnCours) return;
-    const seuilMonte = Number(sliderSeuilMonte?.value ?? 0);
-    const seuilBaisse = Number(sliderSeuilBaisse?.value ?? 0);
+
+    const seuilMonte = Math.max(Number(sliderSeuilMonte?.value ?? 0), SEUIL_SON_MINI);
+    const seuilBaisse = Math.max(Number(sliderSeuilBaisse?.value ?? 0), SEUIL_SON_MINI);
+    const maintenant = performance.now();
+
+    // Hystérésis : un son déjà lancé continue tant qu'on reste au-dessus de la moitié du seuil.
+    // Évite de couper/relancer le son à chaque fois que le signal frôle le seuil.
+    const monteDeja = sonAutoEnCours === 'M';
+    const baisseDeja = sonAutoEnCours === 'B';
     let type = null;
 
-    if (valeurMixee > seuilMonte) type = 'M';
-    else if (valeurMixee < -seuilBaisse) type = 'B';
-
-    const audioVise = type === 'M' ? audioMonte : audioBaisse;
-    const sonVise = type === 'M' ? sonMonteChoisi : sonBaisseChoisi;
+    if (valeurMixee > (monteDeja ? seuilMonte * HYSTERESIS_SON : seuilMonte)) type = 'M';
+    else if (valeurMixee < -(baisseDeja ? seuilBaisse * HYSTERESIS_SON : seuilBaisse)) type = 'B';
 
     if (!type) {
+        // Durée minimale : un son qui vient de démarrer n'est pas coupé aussitôt.
+        if (sonAutoEnCours && maintenant - debutSonAuto < DUREE_MINI_SON_MS) return;
+
         audioMonte.pause();
         audioBaisse.pause();
         sonAutoEnCours = null;
         return;
     }
+
+    const audioVise = type === 'M' ? audioMonte : audioBaisse;
+    const sonVise = type === 'M' ? sonMonteChoisi : sonBaisseChoisi;
 
     if (sonAutoEnCours === type && !audioVise.paused) return;
 
@@ -536,10 +631,16 @@ function jouerSonSelectionne(valeurMixee) {
     autreAudio.pause();
     autreAudio.currentTime = 0;
 
-    audioVise.src = `Sons/${sonVise}.wav`;
+    // Ne réaffecte src que si le fichier change : réaffecter le même src relance un
+    // chargement complet (plusieurs centaines de ms sous Android), d'où la latence.
+    if (audioVise._nomSon !== sonVise) {
+        audioVise.src = `Sons/${sonVise}.wav`;
+        audioVise._nomSon = sonVise;
+    }
     audioVise.loop = true;
     audioVise.currentTime = 0;
     sonAutoEnCours = type;
+    debutSonAuto = maintenant;
 
     reglerVolumeAudio();
     audioVise.play().catch(err => {
@@ -1097,7 +1198,9 @@ function traiterEtMixer() {
     }
 
     if (simuleAccel) {
-        rawAccelZ = Math.sin(simulationTime * 5) * 0.2;
+        vitesseAccel = Math.sin(simulationTime * 2) * 0.3;   // simulation : vitesse verticale
+    } else if (accelArretee || accelRefuse || !hasAccelSensor) {
+        vitesseAccel = 0;                                    // pas de capteur actif : rien à intégrer
     }
 
     const gainP = Number(sliderP?.value ?? 1);
@@ -1110,13 +1213,13 @@ function traiterEtMixer() {
     avgAccelZ = avgAccelZ * 0.8 + rawAccelZ * 0.2;
 
     const diffP = (rawPressure - avgPressure) * gainP;
-    const diffA = (rawAccelZ - avgAccelZ) * gainA;
+    const diffA = vitesseAccel * gainA;   // vitesse verticale (m/s) x « Puissance"
 
     if (hasPressureSensor || simulePression) pushData(pressureChart, diffP);
     if (hasAccelSensor || simuleAccel) pushData(accelChart, diffA);
 
     const mixResult = (-diffP * 2 * ratioP) + (diffA * ratioA);
-    mixLisse = mixLisse * 0.75 + mixResult * 0.25;
+    mixLisse = mixLisse * LISSAGE_MIX + mixResult * (1 - LISSAGE_MIX);
 
     jouerSonSelectionne(mixLisse);
 
